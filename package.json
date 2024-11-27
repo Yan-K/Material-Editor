@@ -1,0 +1,12 @@
+{
+  "name": "com.yank.material-editor",
+  "displayName": "Yan-K Material Editor",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "description": "Edit Material Field in Bulk",
+  "author": {
+    "name": "Yan-K",
+    "url": "https://Yan-K.tv/"
+  },
+  "url": "https://github.com/Yan-K/MaterialEditor"
+}

@@ -1,0 +1,4 @@
+{
+    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
+    "values": ["Yan-K 材質編輯器 (YME)", "主要物件", "重新掃描材質", "掃描已關閉物件", "使用中的材質", "替換成", "並未找到材質。請將一個 GameObject 放入主要物件欄位內並重新掃描。", "有 {0} 個渲染器使用中"]
+}

@@ -1,0 +1,4 @@
+{
+    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
+    "values": ["Yan-K 재질 편집기 (YME)", "루트 오브젝트", "재질 강제 스캔", "비활성 포함", "사용 중인 재질", "교체할 재질", "재질을 찾을 수 없습니다. 루트 오브젝트 필드에 게임 오브젝트를 드롭하고 다시 스캔하세요.", "{0}개의 렌더러에서 사용 중"]
+}

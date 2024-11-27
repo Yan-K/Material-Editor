@@ -1,0 +1,4 @@
+{
+    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
+    "values": ["Yan-K マテリアルエディター (YME)", "ルートオブジェクト", "マテリアルの強制スキャン", "非アクティブを含める", "使用中のマテリアル", "置き換えるマテリアル", "マテリアルが見つかりません。ルートオブジェクトフィールドにゲームオブジェクトをドロップして再スキャンしてください。", "{0}個のレンダラーで使用中"]
+}

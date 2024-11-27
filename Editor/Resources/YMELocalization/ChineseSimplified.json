@@ -1,0 +1,4 @@
+{
+    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
+    "values": ["Yan-K 材质编辑器 (YME)", "根对象", "强制扫描材质", "包括未激活的", "使用中的材质", "替换为", "未找到材质。在根对象字段中放置一个游戏对象并重新扫描。", "被 {0} 个渲染器使用"]
+}

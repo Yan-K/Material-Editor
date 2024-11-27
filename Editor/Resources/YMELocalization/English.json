@@ -1,0 +1,4 @@
+{
+    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
+    "values": ["Yan-K Material Editor (YME)", "Root Object", "Force Scan Materials", "Include Inactive", "Materials in Use", "Replace With", "No materials found. Drop a GameObject in the Root Object field and scan again.", "Used by {0} renderer(s)"]
+}
