@@ -59,12 +59,12 @@ jobs:
         run: find . -name \*.meta >> metaList
       
       # Make a UnityPackage version of the Package for release
-     - name: Create UnityPackage
-       uses: pCYSl5EDgo/create-unitypackage@cfcd3cf0391a5ef1306342794866a9897c32af0b
-       with:
-         package-path: ./ # Path to the root directory
-         include-files: metaList # List of meta files
-         output-path: "${{ github.workspace }}/${{ env.unityPackage }}" # Full path to the output file
+      - name: Create UnityPackage
+        uses: pCYSl5EDgo/create-unitypackage@cfcd3cf0391a5ef1306342794866a9897c32af0b
+        with:
+          package-path: ./
+          include-files: metaList
+          output-path: "${{ github.workspace }}/${{ env.unityPackage }}" # Full path to the output file
       
       # Make a release tag of the version from the package.json file 
       - name: Create Tag
