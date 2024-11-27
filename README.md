@@ -12,8 +12,7 @@ Edit Material Field in Bulk
 
 ## Installation
 
-- Clink [this link](https://github.com/Yan-K) to add repository to VCC.
-- Or download .unitypackage from [Release](https://github.com/Yan-K/Material-Editor/releases) and import to Unity.
+- Download .unitypackage from [Release](https://github.com/Yan-K/Material-Editor/releases) and import to Unity.
 
 ## Changelog
 
