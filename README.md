@@ -7,7 +7,9 @@ Edit Material Field in Bulk
 ## Features
 
 - List used material in all child renderer <br>
+- With or without inactive renderer <br>
 - Replace used material in bulk <br>
+- Undo support <br>
 - Localization <br>
 
 ## Installation
