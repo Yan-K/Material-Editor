@@ -14,6 +14,7 @@ Edit Material Field in Bulk
 
 ## Installation
 
+- Add to VCC via [VPM Listing from Explosive Theorem Lab.](https://xtlcdn.github.io/vpm/).
 - Download .unitypackage from [Release](https://github.com/Yan-K/Material-Editor/releases) and import to Unity.
 
 ## Changelog
@@ -25,3 +26,4 @@ Inital Release.
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))
+- Vistanz ([@JLChnToZ](https://github.com/JLChnToZ)) for VPM Listing
