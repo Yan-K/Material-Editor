@@ -2,13 +2,14 @@
 
 Edit Material Field in Bulk
 
-![Demo](https://i.imgur.com/67anWWx.png)
+![Demo](demo.png)
 
 ## Features
 
 - List used material in all child renderer <br>
 - With or without inactive renderer <br>
 - Replace used material in bulk <br>
+- Clone materials <br>
 - Undo support <br>
 - Localization <br>
 
@@ -22,6 +23,10 @@ Edit Material Field in Bulk
 ### v0.1.0 - 2024/11/27
 
 Inital Release.
+
+### v0.2.0 - 2026/04/06
+
+Added Clone, Reset, Batch Selection, Renderer Foldout.
 
 ## Credit
 
