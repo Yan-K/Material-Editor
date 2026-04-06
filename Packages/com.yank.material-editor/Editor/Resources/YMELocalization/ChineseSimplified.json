@@ -1,4 +1,4 @@
 {
-    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
-    "values": ["Yan-K 材质编辑器 (YME)", "根对象", "强制扫描材质", "包括未激活的", "使用中的材质", "替换为", "未找到材质。在根对象字段中放置一个游戏对象并重新扫描。", "被 {0} 个渲染器使用"]
+    "keys": ["title", "rootObject", "forceScan", "forceScanInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy", "clone", "reset", "selectAll", "replaceSelected", "cloneSelected", "resetSelected", "batchReplaceMaterial"],
+    "values": ["Yan-K 材质编辑器 (YME)", "根对象", "重新扫描材质", "扫描含未激活的", "使用中的材质", "替换为", "未找到材质。在根对象字段中放置一个游戏对象并重新扫描。", "被 {0} 个渲染器使用", "克隆", "重置", "全选", "替换所选", "克隆所选", "重置所选", "批量替换材质"]
 }

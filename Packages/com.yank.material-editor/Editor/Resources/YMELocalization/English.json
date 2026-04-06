@@ -1,4 +1,4 @@
 {
-    "keys": ["title", "rootObject", "forceScan", "includeInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy"],
-    "values": ["Yan-K Material Editor (YME)", "Root Object", "Force Scan Materials", "Include Inactive", "Materials in Use", "Replace With", "No materials found. Drop a GameObject in the Root Object field and scan again.", "Used by {0} renderer(s)"]
+    "keys": ["title", "rootObject", "forceScan", "forceScanInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy", "clone", "reset", "selectAll", "replaceSelected", "cloneSelected", "resetSelected", "batchReplaceMaterial"],
+    "values": ["Yan-K Material Editor (YME)", "Root Object", "Rescan Materials", "Scan Include Inactive", "Materials in Use", "Replace With", "No materials found. Drop a GameObject in the Root Object field and scan again.", "Used by {0} renderer(s)", "Clone", "Reset", "Select All", "Replace Selected", "Clone Selected", "Reset Selected", "Batch Replace Material"]
 }
