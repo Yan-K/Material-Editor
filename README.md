@@ -2,8 +2,12 @@
 
 Edit Materials and Textures in Bulk
 
-![Demo](demo1.png)
-![Demo](demo2.png)
+<table>
+  <tr>
+    <td><img src="demo1.png" width="400"></td>
+    <td><img src="demo2.png" width="400"></td>
+  </tr>
+</table>
 
 ## Features
 
