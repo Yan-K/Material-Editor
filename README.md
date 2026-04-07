@@ -1,15 +1,16 @@
 # Yan-K Material Editor (YME)
 
-Edit Material Field in Bulk
+Edit Materials and Textures in Bulk
 
-![Demo](demo.png)
+![Demo](demo1.png)
+![Demo](demo2.png)
 
 ## Features
 
-- List used material in all child renderer <br>
+- List used materials and textures in all child renderer <br>
 - With or without inactive renderer <br>
-- Replace used material in bulk <br>
-- Clone materials <br>
+- Replace material and texture in bulk <br>
+- Clone materials and textures <br>
 - Undo support <br>
 - Localization <br>
 
@@ -27,6 +28,10 @@ Inital Release.
 ### v0.2.0 - 2026/04/06
 
 Added Clone, Reset, Batch Selection, Renderer Foldout.
+
+### v0.3.0 - 2026/04/07
+
+Added Texture Mode.
 
 ## Credit
 
