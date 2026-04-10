@@ -8,7 +8,7 @@ namespace YanK
 {
 	public partial class MaterialEditorTool : EditorWindow
 	{
-		private const string Version = "v0.4.0";
+		private const string Version = "v0.4.1";
 
 		private UnityEngine.Object rootObject;
 		private Vector2 scrollPosition;
@@ -237,6 +237,9 @@ namespace YanK
 			string dir = Path.GetDirectoryName(originalPath);
 			string baseName = Path.GetFileNameWithoutExtension(originalPath);
 			string ext = Path.GetExtension(originalPath);
+
+			// Strip existing (YMEClone N) suffix to avoid stacking
+			baseName = System.Text.RegularExpressions.Regex.Replace(baseName, @"\s*\(YMEClone \d+\)$", "");
 
 			int n = 1;
 			string newPath;

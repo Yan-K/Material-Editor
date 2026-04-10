@@ -48,6 +48,10 @@ Added Total Number for Materials and Textures.
 
 UX Overhaul.
 
+### v0.4.1 - 2026/04/10
+
+Fixed suffix in clone.
+
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))
