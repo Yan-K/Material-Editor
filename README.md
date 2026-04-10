@@ -52,6 +52,10 @@ UX Overhaul.
 
 Fixed suffix in clone.
 
+### v0.4.2 - 2026/04/11
+
+Fixed modified list card style.
+
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))

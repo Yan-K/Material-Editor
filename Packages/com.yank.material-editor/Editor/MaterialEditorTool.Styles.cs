@@ -63,9 +63,15 @@ namespace YanK
 				margin = new RectOffset(0, 0, 2, 2)
 			};
 
-			modifiedCardStyle = new GUIStyle(cardStyle);
-			var modBg = EditorGUIUtility.isProSkin ? new Color(0.35f, 0.32f, 0.2f, 0.4f) : new Color(1f, 0.95f, 0.8f, 0.6f);
-			modifiedCardStyle.normal.background = MakeTex(1, 1, modBg);
+			modifiedCardStyle = new GUIStyle()
+			{
+				padding = new RectOffset(6, 6, 4, 4),
+				margin = new RectOffset(0, 0, 2, 2),
+				border = new RectOffset(0, 0, 0, 0)
+			};
+			
+			var modBgTex = MakeTex(2, 2, EditorGUIUtility.isProSkin ? new Color(0.35f, 0.33f, 0.15f) : new Color(0.95f, 0.90f, 0.65f));
+			modifiedCardStyle.normal.background = modBgTex;
 
 			stylesInitialized = true;
 		}
