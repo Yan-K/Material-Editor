@@ -37,6 +37,10 @@ Added Clone, Reset, Batch Selection, Renderer Foldout.
 
 Added Texture Mode.
 
+### v0.3.1 - 2026/04/10
+
+Added Total Number for Materials and Textures.
+
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))
