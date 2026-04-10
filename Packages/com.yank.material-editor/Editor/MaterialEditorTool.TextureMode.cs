@@ -100,7 +100,7 @@ namespace YanK
 			}
 			else
 			{
-				EditorGUILayout.LabelField(L("texturesInUse", "Textures in Use"), rightAlignBoldStyle);
+				EditorGUILayout.LabelField(string.Format(L("texturesInUse", "{0} Textures in Use"), textureSlots.Count), rightAlignBoldStyle);
 			}
 			EditorGUILayout.EndHorizontal();
 

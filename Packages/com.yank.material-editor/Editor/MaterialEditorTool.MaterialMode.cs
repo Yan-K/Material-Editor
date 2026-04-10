@@ -83,7 +83,7 @@ namespace YanK
 			}
 
 			GUILayout.FlexibleSpace();
-			EditorGUILayout.LabelField(L("materialsInUse", "Materials in Use"), rightAlignBoldStyle);
+			EditorGUILayout.LabelField(string.Format(L("materialsInUse", "{0} Materials in Use"), materialSlots.Count), rightAlignBoldStyle);
 			EditorGUILayout.EndHorizontal();
 
 			scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));

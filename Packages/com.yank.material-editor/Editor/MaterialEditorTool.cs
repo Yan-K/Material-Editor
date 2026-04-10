@@ -8,7 +8,7 @@ namespace YanK
 {
 	public partial class MaterialEditorTool : EditorWindow
 	{
-		private const string Version = "v0.3.0";
+		private const string Version = "v0.3.1";
 
 		private UnityEngine.Object rootObject;
 		private Vector2 scrollPosition;

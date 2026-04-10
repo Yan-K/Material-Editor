@@ -1,4 +1,4 @@
 {
     "keys": ["title", "rootObject", "forceScan", "forceScanInactive", "materialsInUse", "replaceWith", "noMaterials", "usedBy", "clone", "reset", "selectAll", "replaceSelected", "cloneSelected", "resetSelected", "batchReplaceMaterial", "materialMode", "textureMode", "inspect", "inspectSelected", "inspecting", "clearInspect", "rescanTextures", "batchReplaceTexture", "noTextures", "texturesInUse", "usedByMaterials"],
-    "values": ["Yan-K 材質編輯器 (YME)", "主要物件", "重新掃描材質", "掃描含已關閉物件", "使用中的材質", "替換成", "並未找到材質。請將一個 GameObject 放入主要物件欄位內並重新掃描。", "有 {0} 個渲染器使用中", "複製", "還原", "全選", "替換所選", "複製所選", "還原所選", "批次替換材質", "材質模式", "貼圖模式", "檢視", "檢視所選", "正在檢視 {0} 個材質", "清除檢視", "重新掃描貼圖", "批次替換貼圖", "並未找到貼圖。請將一個 GameObject 或 Material 放入主要物件欄位內並重新掃描。", "使用中的貼圖", "有 {0} 個材質使用中"]
+    "values": ["Yan-K 材質編輯器 (YME)", "主要物件", "重新掃描材質", "掃描含已關閉物件", "{0} 個使用中的材質", "替換成", "並未找到材質。請將一個 GameObject 放入主要物件欄位內並重新掃描。", "有 {0} 個渲染器使用中", "複製", "還原", "全選", "替換所選", "複製所選", "還原所選", "批次替換材質", "材質模式", "貼圖模式", "檢視", "檢視所選", "正在檢視 {0} 個材質", "清除檢視", "重新掃描貼圖", "批次替換貼圖", "並未找到貼圖。請將一個 GameObject 或 Material 放入主要物件欄位內並重新掃描。", "{0} 個使用中的貼圖", "有 {0} 個材質使用中"]
 }
