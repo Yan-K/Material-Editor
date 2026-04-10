@@ -56,6 +56,10 @@ Fixed suffix in clone.
 
 Fixed modified list card style.
 
+### v1.0.0 - 2026/04/11
+
+UI/UX Unified, overall cleanup, changed language format.
+
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))

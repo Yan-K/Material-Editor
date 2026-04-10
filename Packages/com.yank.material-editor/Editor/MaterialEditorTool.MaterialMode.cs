@@ -52,19 +52,20 @@ namespace YanK
 			DrawGroupBox(() =>
 			{
 				EditorGUILayout.BeginHorizontal();
-				if (GUILayout.Button(new GUIContent(L("inspectSelected", "Inspect Selected"), L("inspectSelectedTooltip", "Switch to Texture Mode for selected materials")), GUILayout.Height(24)))
+				EditorGUILayout.LabelField(L("batchActions", "Batch Actions"), GUILayout.MaxWidth(100), GUILayout.ExpandWidth(false));
+				if (GUILayout.Button(new GUIContent(L("inspect", "Inspect"), L("inspectSelectedTooltip", "Switch to Texture Mode for selected materials")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					InspectSelectedMaterials();
-				if (GUILayout.Button(new GUIContent(L("cloneSelected", "Clone Selected"), L("cloneSelectedTooltip", "Clone selected materials as new assets")), GUILayout.Height(24)))
+				if (GUILayout.Button(new GUIContent(L("clone", "Clone"), L("cloneSelectedTooltip", "Clone selected materials as new assets")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchCloneMaterials();
-				if (GUILayout.Button(new GUIContent(L("replaceSelected", "Replace Selected"), L("replaceSelectedTooltip", "Replace selected materials with the batch material")), GUILayout.Height(24)))
+				if (GUILayout.Button(new GUIContent(L("replace", "Replace"), L("replaceSelectedTooltip", "Replace selected materials with the batch material")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchReplaceMaterials();
-				if (GUILayout.Button(new GUIContent(L("resetSelected", "Reset Selected"), L("resetSelectedTooltip", "Reset selected materials to their originals")), GUILayout.Height(24)))
+				if (GUILayout.Button(new GUIContent(L("reset", "Reset"), L("resetSelectedTooltip", "Reset selected materials to their originals")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchResetMaterials();
 				EditorGUILayout.EndHorizontal();
 
 				GUILayout.Space(4);
 				EditorGUILayout.BeginHorizontal();
-				EditorGUILayout.LabelField(L("batchReplaceMaterial", "Batch Replace Material"), GUILayout.Width(160));
+				EditorGUILayout.LabelField(L("batchReplace", "Batch Replace"), GUILayout.MaxWidth(100), GUILayout.ExpandWidth(false));
 				batchReplaceMaterial = (Material)EditorGUILayout.ObjectField(batchReplaceMaterial, typeof(Material), false);
 				if (batchReplaceMaterial != null)
 				{
@@ -82,8 +83,7 @@ namespace YanK
 		{
 			if (materialSlots.Count == 0)
 			{
-				EditorGUILayout.HelpBox(L("noMaterials", "No materials found. Drop a GameObject in the Root Object field and scan again."), MessageType.Info);
-				GUILayout.Space(SectionPadding);
+				DrawCenteredMessage(L("noMaterials", "No materials found. Drop a GameObject in the Root Object field and scan again."), "d_Material Icon");
 				return;
 			}
 
@@ -162,13 +162,13 @@ namespace YanK
 
 			GUILayout.FlexibleSpace();
 
-			if (GUILayout.Button(L("inspect", "Inspect"), GUILayout.Width(60), GUILayout.Height(20)))
+			if (GUILayout.Button(L("inspect", "Inspect"), GUILayout.MinWidth(40), GUILayout.Height(20)))
 				InspectMaterial(slot.current);
 
-			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60), GUILayout.Height(20)))
+			if (GUILayout.Button(L("clone", "Clone"), GUILayout.MinWidth(40), GUILayout.Height(20)))
 				CloneMaterial(slot);
 
-			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60), GUILayout.Height(20)))
+			if (GUILayout.Button(L("reset", "Reset"), GUILayout.MinWidth(40), GUILayout.Height(20)))
 				ResetMaterial(slot);
 
 			EditorGUILayout.EndHorizontal();
@@ -279,21 +279,18 @@ namespace YanK
 			if (batchReplaceMaterial == null) return;
 			foreach (var slot in materialSlots.Where(s => s.selected).ToList())
 				ReplaceMaterial(slot, batchReplaceMaterial);
-			ClearMaterialSelection();
 		}
 
 		private void BatchCloneSelected()
 		{
 			foreach (var slot in materialSlots.Where(s => s.selected).ToList())
 				CloneMaterial(slot);
-			ClearMaterialSelection();
 		}
 
 		private void BatchResetSelected()
 		{
 			foreach (var slot in materialSlots.Where(s => s.selected).ToList())
 				ResetMaterial(slot);
-			ClearMaterialSelection();
 		}
 
 		private void ConfirmBatchResetMaterials()
@@ -355,12 +352,6 @@ namespace YanK
 		}
 
 		// --- Helpers ---
-
-		private void ClearMaterialSelection()
-		{
-			foreach (var slot in materialSlots) slot.selected = false;
-			selectAll = false;
-		}
 
 		private void UpdateSelectAllState()
 		{

@@ -7,7 +7,6 @@ namespace YanK
 	public partial class MaterialEditorTool
 	{
 		// --- Spacing Constants ---
-		private const float SectionPadding = 10f;
 		private const float ItemSpacing = 4f;
 		private const float GroupPadding = 6f;
 
@@ -19,6 +18,7 @@ namespace YanK
 		private GUIStyle dimLabelStyle;
 		private GUIStyle cardStyle;
 		private GUIStyle modifiedCardStyle;
+		private GUIStyle centeredMessageStyle;
 
 		private bool stylesInitialized;
 
@@ -69,18 +69,20 @@ namespace YanK
 				margin = new RectOffset(0, 0, 2, 2),
 				border = new RectOffset(0, 0, 0, 0)
 			};
-			
+
 			var modBgTex = MakeTex(2, 2, EditorGUIUtility.isProSkin ? new Color(0.35f, 0.33f, 0.15f) : new Color(0.95f, 0.90f, 0.65f));
 			modifiedCardStyle.normal.background = modBgTex;
+
+			centeredMessageStyle = new GUIStyle(EditorStyles.label)
+			{
+				alignment = TextAnchor.MiddleCenter,
+				wordWrap = true
+			};
 
 			stylesInitialized = true;
 		}
 
 		// --- Colors ---
-
-		private static Color AccentColor => EditorGUIUtility.isProSkin
-			? new Color(0.45f, 0.65f, 1f)
-			: new Color(0.2f, 0.4f, 0.8f);
 
 		private static Color SeparatorColor => EditorGUIUtility.isProSkin
 			? new Color(0.2f, 0.2f, 0.2f)
@@ -91,18 +93,6 @@ namespace YanK
 			: new Color(0.3f, 0.5f, 0.85f, 0.8f);
 
 		// --- Drawing Helpers ---
-
-		private void DrawSectionHeader(string title)
-		{
-			GUILayout.Space(GroupPadding);
-			var rect = EditorGUILayout.GetControlRect(false, 20);
-			var barRect = new Rect(rect.x, rect.y, 3, rect.height);
-			EditorGUI.DrawRect(barRect, HeaderBarColor);
-			rect.x += 8;
-			rect.width -= 8;
-			GUI.Label(rect, title, sectionHeaderStyle);
-			GUILayout.Space(2);
-		}
 
 		private void DrawGroupBox(Action content)
 		{
@@ -120,7 +110,7 @@ namespace YanK
 			GUILayout.Space(4);
 		}
 
-		private string DrawSearchField(string currentFilter, string placeholderKey = "search", string placeholderDefault = "Search...")
+		private string DrawSearchField(string currentFilter)
 		{
 			EditorGUILayout.BeginHorizontal();
 			GUILayout.Space(2);

@@ -8,7 +8,7 @@ namespace YanK
 {
 	public partial class MaterialEditorTool : EditorWindow
 	{
-		private const string Version = "v0.4.2";
+		private const string Version = "v1.0.0";
 
 		private UnityEngine.Object rootObject;
 		private Vector2 scrollPosition;
@@ -21,8 +21,6 @@ namespace YanK
 		private readonly List<string> availableLanguages = new List<string>();
 		private int selectedLanguageIndex;
 		private Dictionary<string, string> localizedStrings = new Dictionary<string, string>();
-
-		private GUIStyle rightAlignBoldStyle;
 
 		[MenuItem("Tools/Yan-K/Material Editor")]
 		public static void ShowWindow()
@@ -54,10 +52,6 @@ namespace YanK
 		private void OnGUI()
 		{
 			InitStyles();
-
-			if (rightAlignBoldStyle == null)
-				rightAlignBoldStyle = new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.MiddleRight };
-
 			DrawHeader();
 
 			if (currentTab == 0)
@@ -152,17 +146,21 @@ namespace YanK
 
 		private void DrawEmptyState()
 		{
+			DrawCenteredMessage(L("noRootObject", "Drop a GameObject or Material in the Root Object field above to begin."), "d_GameObject Icon");
+		}
+
+		private void DrawCenteredMessage(string message, string iconName)
+		{
 			GUILayout.FlexibleSpace();
 			EditorGUILayout.BeginHorizontal();
 			GUILayout.FlexibleSpace();
 			EditorGUILayout.BeginVertical();
 
 			var iconRect = GUILayoutUtility.GetRect(48, 48, GUILayout.ExpandWidth(false));
-			GUI.DrawTexture(iconRect, EditorGUIUtility.IconContent("d_GameObject Icon").image, ScaleMode.ScaleToFit);
+			GUI.DrawTexture(iconRect, EditorGUIUtility.IconContent(iconName).image, ScaleMode.ScaleToFit);
 
 			GUILayout.Space(8);
-			var centeredStyle = new GUIStyle(EditorStyles.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
-			EditorGUILayout.LabelField(L("noRootObject", "Drop a GameObject or Material in the Root Object field above to begin."), centeredStyle, GUILayout.Width(300));
+			EditorGUILayout.LabelField(message, centeredMessageStyle, GUILayout.Width(300));
 
 			EditorGUILayout.EndVertical();
 			GUILayout.FlexibleSpace();
@@ -200,7 +198,7 @@ namespace YanK
 
 			if (jsonFile != null)
 			{
-				try { localizedStrings = JsonUtility.FromJson<SerializableDictionary>(jsonFile.text).ToDictionary(); }
+				try { localizedStrings = LocalizationParser.Parse(jsonFile.text); }
 				catch { Debug.LogError($"Failed to parse localization file: {lang}"); }
 			}
 			else
@@ -227,11 +225,6 @@ namespace YanK
 			return localizedStrings.TryGetValue(key, out string value) ? value : defaultValue;
 		}
 
-		private void DrawSeparator()
-		{
-			DrawStyledSeparator();
-		}
-
 		private static string GenerateClonePath(string originalPath)
 		{
 			string dir = Path.GetDirectoryName(originalPath);
@@ -248,17 +241,26 @@ namespace YanK
 			return newPath;
 		}
 
-		[System.Serializable]
-		private class SerializableDictionary
+		private static class LocalizationParser
 		{
-			public List<string> keys = new List<string>();
-			public List<string> values = new List<string>();
-
-			public Dictionary<string, string> ToDictionary()
+			public static Dictionary<string, string> Parse(string json)
 			{
 				var dict = new Dictionary<string, string>();
-				for (int i = 0; i < keys.Count; i++)
-					dict[keys[i]] = values[i];
+				json = json.Trim();
+				if (json.StartsWith("{")) json = json.Substring(1);
+				if (json.EndsWith("}")) json = json.Substring(0, json.Length - 1);
+
+				foreach (var entry in json.Split('\n'))
+				{
+					var line = entry.Trim().TrimEnd(',');
+					if (string.IsNullOrEmpty(line)) continue;
+					int colonIdx = line.IndexOf(':');
+					if (colonIdx < 0) continue;
+					string key = line.Substring(0, colonIdx).Trim().Trim('"');
+					string val = line.Substring(colonIdx + 1).Trim().Trim('"');
+					if (!string.IsNullOrEmpty(key))
+						dict[key] = val;
+				}
 				return dict;
 			}
 		}

@@ -60,17 +60,18 @@ namespace YanK
 			DrawGroupBox(() =>
 			{
 				EditorGUILayout.BeginHorizontal();
-				if (GUILayout.Button(new GUIContent(L("cloneSelected", "Clone Selected"), L("cloneSelectedTooltip", "Clone selected textures as new assets")), GUILayout.Height(24)))
+				EditorGUILayout.LabelField(L("batchActions", "Batch Actions"), GUILayout.MaxWidth(100), GUILayout.ExpandWidth(false));
+				if (GUILayout.Button(new GUIContent(L("clone", "Clone"), L("cloneSelectedTooltip", "Clone selected textures as new assets")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchCloneTextures();
-				if (GUILayout.Button(new GUIContent(L("replaceSelected", "Replace Selected"), L("replaceSelectedTooltip", "Replace selected textures with the batch texture")), GUILayout.Height(24)))
+				if (GUILayout.Button(new GUIContent(L("replace", "Replace"), L("replaceSelectedTooltip", "Replace selected textures with the batch texture")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchReplaceTextures();
-				if (GUILayout.Button(new GUIContent(L("resetSelected", "Reset Selected"), L("resetSelectedTooltip", "Reset selected textures to their originals")), GUILayout.Height(24)))
+				if (GUILayout.Button(new GUIContent(L("reset", "Reset"), L("resetSelectedTooltip", "Reset selected textures to their originals")), GUILayout.Height(24), GUILayout.ExpandWidth(true), GUILayout.MinWidth(0)))
 					ConfirmBatchResetTextures();
 				EditorGUILayout.EndHorizontal();
 
 				GUILayout.Space(4);
 				EditorGUILayout.BeginHorizontal();
-				EditorGUILayout.LabelField(L("batchReplaceTexture", "Batch Replace Texture"), GUILayout.Width(160));
+				EditorGUILayout.LabelField(L("batchReplace", "Batch Replace"), GUILayout.MaxWidth(100), GUILayout.ExpandWidth(false));
 				batchReplaceTexture = (Texture)EditorGUILayout.ObjectField(batchReplaceTexture, typeof(Texture), false);
 				if (batchReplaceTexture != null)
 				{
@@ -88,8 +89,7 @@ namespace YanK
 		{
 			if (textureSlots.Count == 0)
 			{
-				EditorGUILayout.HelpBox(L("noTextures", "No textures found. Drop a GameObject or Material in the Root Object field and scan again."), MessageType.Info);
-				GUILayout.Space(SectionPadding);
+				DrawCenteredMessage(L("noTextures", "No textures found. Drop a GameObject or Material in the Root Object field and scan again."), "d_Texture Icon");
 				return;
 			}
 
@@ -180,10 +180,10 @@ namespace YanK
 
 			GUILayout.FlexibleSpace();
 
-			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60), GUILayout.Height(20)))
+			if (GUILayout.Button(L("clone", "Clone"), GUILayout.MinWidth(40), GUILayout.Height(20)))
 				CloneTexture(slot);
 
-			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60), GUILayout.Height(20)))
+			if (GUILayout.Button(L("reset", "Reset"), GUILayout.MinWidth(40), GUILayout.Height(20)))
 				ResetTexture(slot);
 
 			EditorGUILayout.EndHorizontal();
@@ -233,11 +233,12 @@ namespace YanK
 			}
 			else if (rootObject is GameObject go)
 			{
+				var seen = new HashSet<Material>();
 				foreach (var renderer in go.GetComponentsInChildren<Renderer>(includeInactive))
 				{
 					foreach (var mat in renderer.sharedMaterials)
 					{
-						if (mat != null && !materials.Contains(mat))
+						if (mat != null && seen.Add(mat))
 							materials.Add(mat);
 					}
 				}
@@ -247,7 +248,7 @@ namespace YanK
 				materials.Add(rootMat);
 			}
 
-			var seen = new Dictionary<Texture, TextureSlot>();
+			var seenTextures = new Dictionary<Texture, TextureSlot>();
 			foreach (var material in materials)
 			{
 				if (material.shader == null) continue;
@@ -262,10 +263,10 @@ namespace YanK
 					var texture = material.GetTexture(propName);
 					if (texture == null) continue;
 
-					if (!seen.TryGetValue(texture, out var slot))
+					if (!seenTextures.TryGetValue(texture, out var slot))
 					{
 						slot = new TextureSlot { current = texture, original = texture };
-						seen[texture] = slot;
+						seenTextures[texture] = slot;
 						textureSlots.Add(slot);
 					}
 					slot.usages.Add(new TextureUsageInfo { material = material, propertyName = propName });
@@ -315,21 +316,18 @@ namespace YanK
 			if (batchReplaceTexture == null) return;
 			foreach (var slot in textureSlots.Where(s => s.selected).ToList())
 				ReplaceTexture(slot, batchReplaceTexture);
-			ClearTextureSelection();
 		}
 
 		private void BatchCloneSelectedTextures()
 		{
 			foreach (var slot in textureSlots.Where(s => s.selected).ToList())
 				CloneTexture(slot);
-			ClearTextureSelection();
 		}
 
 		private void BatchResetSelectedTextures()
 		{
 			foreach (var slot in textureSlots.Where(s => s.selected).ToList())
 				ResetTexture(slot);
-			ClearTextureSelection();
 		}
 
 		private void ConfirmBatchResetTextures()
@@ -373,12 +371,6 @@ namespace YanK
 		}
 
 		// --- Helpers ---
-
-		private void ClearTextureSelection()
-		{
-			foreach (var slot in textureSlots) slot.selected = false;
-			textureSelectAll = false;
-		}
 
 		private void UpdateTextureSelectAllState()
 		{
