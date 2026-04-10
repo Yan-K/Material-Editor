@@ -8,12 +8,15 @@ namespace YanK
 {
 	public partial class MaterialEditorTool : EditorWindow
 	{
-		private const string Version = "v0.3.1";
+		private const string Version = "v0.4.0";
 
 		private UnityEngine.Object rootObject;
 		private Vector2 scrollPosition;
 		private bool includeInactive;
 		private int currentTab;
+
+		private string materialSearchFilter = "";
+		private string textureSearchFilter = "";
 
 		private readonly List<string> availableLanguages = new List<string>();
 		private int selectedLanguageIndex;
@@ -32,6 +35,7 @@ namespace YanK
 			RefreshLanguageFiles();
 			LoadDefaultLanguage();
 			LoadLocalizedStrings();
+			includeInactive = EditorPrefs.GetBool("YME_IncludeInactive", false);
 			Undo.undoRedoPerformed += OnUndoRedoPerformed;
 		}
 
@@ -49,36 +53,43 @@ namespace YanK
 
 		private void OnGUI()
 		{
+			InitStyles();
+
 			if (rightAlignBoldStyle == null)
 				rightAlignBoldStyle = new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.MiddleRight };
 
 			DrawHeader();
-			DrawRootObjectField();
-			DrawTabSwitcher();
 
 			if (currentTab == 0)
 			{
 				DrawMaterialControlPanel();
-				DrawMaterialList();
+				if (rootObject != null)
+					DrawMaterialList();
+				else
+					DrawEmptyState();
 			}
 			else
 			{
 				DrawTextureControlPanel();
-				DrawTextureList();
+				if (rootObject != null)
+					DrawTextureList();
+				else
+					DrawEmptyState();
 			}
 		}
 
 		private void DrawHeader()
 		{
-			GUILayout.Space(10);
+			GUILayout.Space(8);
+
+			// Row 1: Title + Version badge + Language selector
 			EditorGUILayout.BeginHorizontal();
 
-			string title = L("title", "Yan-K Material Editor (YME)") + "  " + Version;
-			EditorGUILayout.LabelField(title, EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(300));
+			EditorGUILayout.LabelField(L("title", "Yan-K Material Editor (YME)"), sectionHeaderStyle, GUILayout.ExpandWidth(false));
 
 			GUILayout.FlexibleSpace();
 
-			int newIndex = EditorGUILayout.Popup(selectedLanguageIndex, availableLanguages.ToArray(), GUILayout.Width(150));
+			int newIndex = EditorGUILayout.Popup(selectedLanguageIndex, availableLanguages.ToArray(), GUILayout.Width(120));
 			if (newIndex != selectedLanguageIndex)
 			{
 				selectedLanguageIndex = newIndex;
@@ -86,15 +97,22 @@ namespace YanK
 				LoadLocalizedStrings();
 			}
 
-			EditorGUILayout.EndHorizontal();
-			GUILayout.Space(10);
-			DrawSeparator();
-		}
+			GUILayout.Space(4);
+			GUILayout.Label(Version, versionBadgeStyle);
 
-		private void DrawRootObjectField()
-		{
-			EditorGUILayout.LabelField(L("rootObject", "Root Object"), EditorStyles.boldLabel);
+			EditorGUILayout.EndHorizontal();
+
+			GUILayout.Space(8);
+
+			// Row 2: Root Object field (merged into header)
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField(L("rootObject", "Root Object"), EditorStyles.boldLabel, GUILayout.Width(80));
 			var newRoot = EditorGUILayout.ObjectField(rootObject, typeof(UnityEngine.Object), true);
+			if (rootObject != null)
+			{
+				if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(18)))
+					newRoot = null;
+			}
 			if (newRoot != rootObject)
 			{
 				if (newRoot == null || newRoot is GameObject || newRoot is Material)
@@ -112,16 +130,16 @@ namespace YanK
 					}
 				}
 			}
-			GUILayout.Space(5);
+			EditorGUILayout.EndHorizontal();
 		}
 
-		private void DrawTabSwitcher()
+		private void DrawTabBar()
 		{
 			string[] tabNames = {
 				L("materialMode", "Material Mode"),
 				L("textureMode", "Texture Mode")
 			};
-			int newTab = GUILayout.Toolbar(currentTab, tabNames);
+			int newTab = GUILayout.Toolbar(currentTab, tabNames, GUILayout.Height(22));
 			if (newTab != currentTab)
 			{
 				currentTab = newTab;
@@ -130,8 +148,26 @@ namespace YanK
 				else
 					ScanTextures();
 			}
-			GUILayout.Space(5);
-			DrawSeparator();
+		}
+
+		private void DrawEmptyState()
+		{
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.BeginHorizontal();
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.BeginVertical();
+
+			var iconRect = GUILayoutUtility.GetRect(48, 48, GUILayout.ExpandWidth(false));
+			GUI.DrawTexture(iconRect, EditorGUIUtility.IconContent("d_GameObject Icon").image, ScaleMode.ScaleToFit);
+
+			GUILayout.Space(8);
+			var centeredStyle = new GUIStyle(EditorStyles.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
+			EditorGUILayout.LabelField(L("noRootObject", "Drop a GameObject or Material in the Root Object field above to begin."), centeredStyle, GUILayout.Width(300));
+
+			EditorGUILayout.EndVertical();
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.EndHorizontal();
+			GUILayout.FlexibleSpace();
 		}
 
 		// --- Localization ---
@@ -193,9 +229,7 @@ namespace YanK
 
 		private void DrawSeparator()
 		{
-			GUILayout.Space(5);
-			EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1), Color.gray);
-			GUILayout.Space(5);
+			DrawStyledSeparator();
 		}
 
 		private static string GenerateClonePath(string originalPath)

@@ -11,12 +11,15 @@ Edit Materials and Textures in Bulk
 
 ## Features
 
-- List used materials and textures in all child renderer <br>
-- With or without inactive renderer <br>
-- Replace material and texture in bulk <br>
-- Clone materials and textures <br>
-- Undo support <br>
-- Localization <br>
+- **Bulk Material & Texture Management** — List, replace, clone, and reset materials and textures across all child renderers
+- **Search & Filter** — Quickly find materials by name or shader, and textures by name or property
+- **Batch Operations** — Select multiple items and clone, replace, or reset them all at once
+- **Modified Indicator** — Visual highlight on items that have been changed from their original
+- **Include Inactive** — Optionally scan inactive GameObjects, with persistent toggle across sessions
+- **Confirmation Dialogs** — Destructive batch resets require confirmation to prevent accidents
+- **Undo Support** — All operations are fully undoable
+- **Localization** — English, 简体中文, 繁體中文, 日本語, 한국어
+- **Theme Aware** — Adapts to both dark and light editor themes
 
 ## Installation
 
@@ -40,6 +43,10 @@ Added Texture Mode.
 ### v0.3.1 - 2026/04/10
 
 Added Total Number for Materials and Textures.
+
+### v0.4.0 - 2026/04/10
+
+UX Overhaul.
 
 ## Credit
 

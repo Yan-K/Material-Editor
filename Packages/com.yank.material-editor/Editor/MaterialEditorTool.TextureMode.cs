@@ -31,41 +31,57 @@ namespace YanK
 
 		private void DrawTextureControlPanel()
 		{
-			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button(L("rescanTextures", "Rescan Textures"), GUILayout.Height(25)))
+			GUILayout.Space(4);
+
+			// Mode selector + Scan group
+			DrawGroupBox(() =>
 			{
-				includeInactive = false;
-				inspectedMaterials.Clear();
-				ScanTextures();
-			}
-			if (GUILayout.Button(L("forceScanInactive", "Scan Include Inactive"), GUILayout.Height(25)))
+				DrawTabBar();
+				GUILayout.Space(4);
+				EditorGUILayout.BeginHorizontal();
+				if (GUILayout.Button(new GUIContent(L("rescanTextures", "Rescan Textures"), L("rescanTexturesTooltip", "Scan the root object hierarchy for textures")), GUILayout.Height(30)))
+				{
+					inspectedMaterials.Clear();
+					ScanTextures();
+				}
+				GUILayout.Space(8);
+				bool newIncludeInactive = EditorGUILayout.ToggleLeft(L("includeInactive", "Include Inactive"), includeInactive, GUILayout.Width(120), GUILayout.Height(30));
+				if (newIncludeInactive != includeInactive)
+				{
+					includeInactive = newIncludeInactive;
+					EditorPrefs.SetBool("YME_IncludeInactive", includeInactive);
+				}
+				EditorGUILayout.EndHorizontal();
+			});
+
+			GUILayout.Space(4);
+
+			// Batch operations group
+			DrawGroupBox(() =>
 			{
-				includeInactive = true;
-				inspectedMaterials.Clear();
-				ScanTextures();
-			}
-			EditorGUILayout.EndHorizontal();
+				EditorGUILayout.BeginHorizontal();
+				if (GUILayout.Button(new GUIContent(L("cloneSelected", "Clone Selected"), L("cloneSelectedTooltip", "Clone selected textures as new assets")), GUILayout.Height(24)))
+					ConfirmBatchCloneTextures();
+				if (GUILayout.Button(new GUIContent(L("replaceSelected", "Replace Selected"), L("replaceSelectedTooltip", "Replace selected textures with the batch texture")), GUILayout.Height(24)))
+					ConfirmBatchReplaceTextures();
+				if (GUILayout.Button(new GUIContent(L("resetSelected", "Reset Selected"), L("resetSelectedTooltip", "Reset selected textures to their originals")), GUILayout.Height(24)))
+					ConfirmBatchResetTextures();
+				EditorGUILayout.EndHorizontal();
 
-			GUILayout.Space(5);
+				GUILayout.Space(4);
+				EditorGUILayout.BeginHorizontal();
+				EditorGUILayout.LabelField(L("batchReplaceTexture", "Batch Replace Texture"), GUILayout.Width(160));
+				batchReplaceTexture = (Texture)EditorGUILayout.ObjectField(batchReplaceTexture, typeof(Texture), false);
+				if (batchReplaceTexture != null)
+				{
+					if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(18)))
+						batchReplaceTexture = null;
+				}
+				EditorGUILayout.EndHorizontal();
+			});
 
-			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button(L("cloneSelected", "Clone Selected"), GUILayout.Height(25)))
-				BatchCloneSelectedTextures();
-			if (GUILayout.Button(L("replaceSelected", "Replace Selected"), GUILayout.Height(25)))
-				BatchReplaceSelectedTextures();
-			if (GUILayout.Button(L("resetSelected", "Reset Selected"), GUILayout.Height(25)))
-				BatchResetSelectedTextures();
-			EditorGUILayout.EndHorizontal();
-
-			GUILayout.Space(5);
-
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.LabelField(L("batchReplaceTexture", "Batch Replace Texture"), GUILayout.Width(180));
-			batchReplaceTexture = (Texture)EditorGUILayout.ObjectField(batchReplaceTexture, typeof(Texture), false);
-			EditorGUILayout.EndHorizontal();
-
-			GUILayout.Space(10);
-			DrawSeparator();
+			GUILayout.Space(2);
+			DrawStyledSeparator();
 		}
 
 		private void DrawTextureList()
@@ -73,9 +89,16 @@ namespace YanK
 			if (textureSlots.Count == 0)
 			{
 				EditorGUILayout.HelpBox(L("noTextures", "No textures found. Drop a GameObject or Material in the Root Object field and scan again."), MessageType.Info);
-				GUILayout.Space(10);
+				GUILayout.Space(SectionPadding);
 				return;
 			}
+
+			// Search bar
+			textureSearchFilter = DrawSearchField(textureSearchFilter);
+			GUILayout.Space(2);
+
+			// Select All + status
+			var filtered = GetFilteredTextureSlots();
 
 			EditorGUILayout.BeginHorizontal();
 
@@ -88,39 +111,43 @@ namespace YanK
 			}
 
 			GUILayout.FlexibleSpace();
-			if (inspectedMaterials.Count > 0)
+
+			if (!string.IsNullOrEmpty(textureSearchFilter))
+				EditorGUILayout.LabelField(string.Format(L("filterStatus", "{0} of {1} shown"), filtered.Count, textureSlots.Count), statusLabelStyle);
+			else if (inspectedMaterials.Count > 0)
 			{
-				string label = string.Format(L("inspecting", "Inspecting {0} material(s)"), inspectedMaterials.Count);
-				EditorGUILayout.LabelField(label, rightAlignBoldStyle);
-				if (GUILayout.Button(L("clearInspect", "Clear Inspect"), GUILayout.Width(100)))
+				EditorGUILayout.LabelField(
+					string.Format(L("inspecting", "Inspecting {0} material(s)"), inspectedMaterials.Count),
+					statusLabelStyle);
+				if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
 				{
 					inspectedMaterials.Clear();
 					ScanTextures();
 				}
 			}
 			else
-			{
-				EditorGUILayout.LabelField(string.Format(L("texturesInUse", "{0} Textures in Use"), textureSlots.Count), rightAlignBoldStyle);
-			}
+				EditorGUILayout.LabelField(string.Format(L("texturesInUse", "{0} Textures in Use"), textureSlots.Count), statusLabelStyle);
+
 			EditorGUILayout.EndHorizontal();
 
+			// Scrollable list
 			textureScrollPosition = EditorGUILayout.BeginScrollView(textureScrollPosition, GUILayout.ExpandHeight(true));
 
-			foreach (var slot in textureSlots)
+			foreach (var slot in filtered)
 			{
-				GUILayout.Space(5);
-				EditorGUILayout.BeginVertical("box");
-				DrawTextureItem(slot);
+				GUILayout.Space(ItemSpacing);
+				bool isModified = slot.current != slot.original;
+				EditorGUILayout.BeginVertical(isModified ? modifiedCardStyle : cardStyle);
+				DrawTextureItem(slot, isModified);
 				EditorGUILayout.EndVertical();
 			}
 
 			EditorGUILayout.EndScrollView();
-			GUILayout.Space(10);
-			DrawSeparator();
 		}
 
-		private void DrawTextureItem(TextureSlot slot)
+		private void DrawTextureItem(TextureSlot slot, bool isModified)
 		{
+			// Row 1: Checkbox + Texture ObjectField + dimensions
 			EditorGUILayout.BeginHorizontal();
 
 			bool newSelected = EditorGUILayout.Toggle(slot.selected, GUILayout.Width(20));
@@ -134,19 +161,34 @@ namespace YanK
 			if (newTexture != null && newTexture != slot.current)
 				ReplaceTexture(slot, newTexture);
 
-			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60)))
-				CloneTexture(slot);
+			// Texture dimensions (dimmed)
+			if (slot.current != null)
+				EditorGUILayout.LabelField($"{slot.current.width}x{slot.current.height}", dimLabelStyle, GUILayout.Width(80));
 
-			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60)))
-				ResetTexture(slot);
+			if (isModified)
+				GUILayout.Label(L("modified", "Modified"), EditorStyles.miniLabel, GUILayout.ExpandWidth(false));
 
 			EditorGUILayout.EndHorizontal();
+
+			// Row 2: Foldout + Action buttons on same line
+			EditorGUILayout.BeginHorizontal();
 
 			string foldoutLabel = string.Format(L("usedByMaterials", "Used by {0} material(s)"), slot.usages.Select(u => u.material).Distinct().Count());
 			bool newFoldout = EditorGUILayout.Foldout(slot.foldout, foldoutLabel, true);
 			if (newFoldout != slot.foldout)
 				slot.foldout = newFoldout;
 
+			GUILayout.FlexibleSpace();
+
+			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60), GUILayout.Height(20)))
+				CloneTexture(slot);
+
+			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60), GUILayout.Height(20)))
+				ResetTexture(slot);
+
+			EditorGUILayout.EndHorizontal();
+
+			// Foldout content: usage list
 			if (newFoldout)
 			{
 				EditorGUI.indentLevel++;
@@ -154,11 +196,26 @@ namespace YanK
 				{
 					EditorGUILayout.BeginHorizontal();
 					EditorGUILayout.ObjectField(usage.material, typeof(Material), false);
-					EditorGUILayout.LabelField(usage.propertyName, GUILayout.Width(150));
+					EditorGUILayout.LabelField(usage.propertyName, dimLabelStyle, GUILayout.Width(150));
 					EditorGUILayout.EndHorizontal();
 				}
 				EditorGUI.indentLevel--;
 			}
+		}
+
+		private List<TextureSlot> GetFilteredTextureSlots()
+		{
+			if (string.IsNullOrEmpty(textureSearchFilter))
+				return textureSlots;
+
+			string filter = textureSearchFilter.ToLowerInvariant();
+			return textureSlots.Where(s =>
+			{
+				if (s.current == null) return false;
+				if (s.current.name.ToLowerInvariant().Contains(filter)) return true;
+				if (s.usages.Any(u => u.propertyName.ToLowerInvariant().Contains(filter))) return true;
+				return false;
+			}).ToList();
 		}
 
 		// --- Data ---
@@ -273,6 +330,46 @@ namespace YanK
 			foreach (var slot in textureSlots.Where(s => s.selected).ToList())
 				ResetTexture(slot);
 			ClearTextureSelection();
+		}
+
+		private void ConfirmBatchResetTextures()
+		{
+			var selected = textureSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmResetTitle", "Confirm Reset"),
+				string.Format(L("confirmReset", "Reset {0} item(s) to original?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchResetSelectedTextures();
+			}
+		}
+
+		private void ConfirmBatchCloneTextures()
+		{
+			var selected = textureSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmCloneTitle", "Confirm Clone"),
+				string.Format(L("confirmClone", "Clone {0} item(s)?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchCloneSelectedTextures();
+			}
+		}
+
+		private void ConfirmBatchReplaceTextures()
+		{
+			var selected = textureSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (batchReplaceTexture == null) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmReplaceTitle", "Confirm Replace"),
+				string.Format(L("confirmReplace", "Replace {0} item(s)?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchReplaceSelectedTextures();
+			}
 		}
 
 		// --- Helpers ---

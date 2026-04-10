@@ -26,41 +26,56 @@ namespace YanK
 
 		private void DrawMaterialControlPanel()
 		{
-			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button(L("forceScan", "Rescan Materials"), GUILayout.Height(25)))
+			GUILayout.Space(4);
+
+			// Mode selector + Scan group
+			DrawGroupBox(() =>
 			{
-				includeInactive = false;
-				ScanMaterials();
-			}
-			if (GUILayout.Button(L("forceScanInactive", "Scan Include Inactive"), GUILayout.Height(25)))
+				DrawTabBar();
+				GUILayout.Space(4);
+				EditorGUILayout.BeginHorizontal();
+				if (GUILayout.Button(new GUIContent(L("forceScan", "Rescan Materials"), L("forceScanTooltip", "Scan the root object hierarchy for materials")), GUILayout.Height(30)))
+					ScanMaterials();
+				GUILayout.Space(8);
+				bool newIncludeInactive = EditorGUILayout.ToggleLeft(L("includeInactive", "Include Inactive"), includeInactive, GUILayout.Width(120), GUILayout.Height(30));
+				if (newIncludeInactive != includeInactive)
+				{
+					includeInactive = newIncludeInactive;
+					EditorPrefs.SetBool("YME_IncludeInactive", includeInactive);
+				}
+				EditorGUILayout.EndHorizontal();
+			});
+
+			GUILayout.Space(4);
+
+			// Batch operations group
+			DrawGroupBox(() =>
 			{
-				includeInactive = true;
-				ScanMaterials();
-			}
-			EditorGUILayout.EndHorizontal();
+				EditorGUILayout.BeginHorizontal();
+				if (GUILayout.Button(new GUIContent(L("inspectSelected", "Inspect Selected"), L("inspectSelectedTooltip", "Switch to Texture Mode for selected materials")), GUILayout.Height(24)))
+					InspectSelectedMaterials();
+				if (GUILayout.Button(new GUIContent(L("cloneSelected", "Clone Selected"), L("cloneSelectedTooltip", "Clone selected materials as new assets")), GUILayout.Height(24)))
+					ConfirmBatchCloneMaterials();
+				if (GUILayout.Button(new GUIContent(L("replaceSelected", "Replace Selected"), L("replaceSelectedTooltip", "Replace selected materials with the batch material")), GUILayout.Height(24)))
+					ConfirmBatchReplaceMaterials();
+				if (GUILayout.Button(new GUIContent(L("resetSelected", "Reset Selected"), L("resetSelectedTooltip", "Reset selected materials to their originals")), GUILayout.Height(24)))
+					ConfirmBatchResetMaterials();
+				EditorGUILayout.EndHorizontal();
 
-			GUILayout.Space(5);
+				GUILayout.Space(4);
+				EditorGUILayout.BeginHorizontal();
+				EditorGUILayout.LabelField(L("batchReplaceMaterial", "Batch Replace Material"), GUILayout.Width(160));
+				batchReplaceMaterial = (Material)EditorGUILayout.ObjectField(batchReplaceMaterial, typeof(Material), false);
+				if (batchReplaceMaterial != null)
+				{
+					if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(18)))
+						batchReplaceMaterial = null;
+				}
+				EditorGUILayout.EndHorizontal();
+			});
 
-			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button(L("inspectSelected", "Inspect Selected"), GUILayout.Height(25)))
-				InspectSelectedMaterials();
-			if (GUILayout.Button(L("cloneSelected", "Clone Selected"), GUILayout.Height(25)))
-				BatchCloneSelected();
-			if (GUILayout.Button(L("replaceSelected", "Replace Selected"), GUILayout.Height(25)))
-				BatchReplaceSelected();
-			if (GUILayout.Button(L("resetSelected", "Reset Selected"), GUILayout.Height(25)))
-				BatchResetSelected();
-			EditorGUILayout.EndHorizontal();
-
-			GUILayout.Space(5);
-
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.LabelField(L("batchReplaceMaterial", "Batch Replace Material"), GUILayout.Width(180));
-			batchReplaceMaterial = (Material)EditorGUILayout.ObjectField(batchReplaceMaterial, typeof(Material), false);
-			EditorGUILayout.EndHorizontal();
-
-			GUILayout.Space(10);
-			DrawSeparator();
+			GUILayout.Space(2);
+			DrawStyledSeparator();
 		}
 
 		private void DrawMaterialList()
@@ -68,9 +83,16 @@ namespace YanK
 			if (materialSlots.Count == 0)
 			{
 				EditorGUILayout.HelpBox(L("noMaterials", "No materials found. Drop a GameObject in the Root Object field and scan again."), MessageType.Info);
-				GUILayout.Space(10);
+				GUILayout.Space(SectionPadding);
 				return;
 			}
+
+			// Search bar
+			materialSearchFilter = DrawSearchField(materialSearchFilter);
+			GUILayout.Space(2);
+
+			// Select All + status
+			var filtered = GetFilteredMaterialSlots();
 
 			EditorGUILayout.BeginHorizontal();
 
@@ -83,26 +105,32 @@ namespace YanK
 			}
 
 			GUILayout.FlexibleSpace();
-			EditorGUILayout.LabelField(string.Format(L("materialsInUse", "{0} Materials in Use"), materialSlots.Count), rightAlignBoldStyle);
+
+			if (!string.IsNullOrEmpty(materialSearchFilter))
+				EditorGUILayout.LabelField(string.Format(L("filterStatus", "{0} of {1} shown"), filtered.Count, materialSlots.Count), statusLabelStyle);
+			else
+				EditorGUILayout.LabelField(string.Format(L("materialsInUse", "{0} Materials in Use"), materialSlots.Count), statusLabelStyle);
+
 			EditorGUILayout.EndHorizontal();
 
+			// Scrollable list
 			scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
 
-			foreach (var slot in materialSlots)
+			foreach (var slot in filtered)
 			{
-				GUILayout.Space(5);
-				EditorGUILayout.BeginVertical("box");
-				DrawMaterialItem(slot);
+				GUILayout.Space(ItemSpacing);
+				bool isModified = slot.current != slot.original;
+				EditorGUILayout.BeginVertical(isModified ? modifiedCardStyle : cardStyle);
+				DrawMaterialItem(slot, isModified);
 				EditorGUILayout.EndVertical();
 			}
 
 			EditorGUILayout.EndScrollView();
-			GUILayout.Space(10);
-			DrawSeparator();
 		}
 
-		private void DrawMaterialItem(MaterialSlot slot)
+		private void DrawMaterialItem(MaterialSlot slot, bool isModified)
 		{
+			// Row 1: Checkbox + Material ObjectField + Shader label
 			EditorGUILayout.BeginHorizontal();
 
 			bool newSelected = EditorGUILayout.Toggle(slot.selected, GUILayout.Width(20));
@@ -116,21 +144,36 @@ namespace YanK
 			if (newMaterial != null && newMaterial != slot.current)
 				ReplaceMaterial(slot, newMaterial);
 
-			if (GUILayout.Button(L("inspect", "Inspect"), GUILayout.Width(60)))
-				InspectMaterial(slot.current);
+			// Shader name (dimmed)
+			if (slot.current != null && slot.current.shader != null)
+				EditorGUILayout.LabelField(slot.current.shader.name, dimLabelStyle, GUILayout.Width(140));
 
-			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60)))
-				CloneMaterial(slot);
-
-			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60)))
-				ResetMaterial(slot);
+			if (isModified)
+				GUILayout.Label(L("modified", "Modified"), EditorStyles.miniLabel, GUILayout.ExpandWidth(false));
 
 			EditorGUILayout.EndHorizontal();
+
+			// Row 2: Foldout + Action buttons on same line
+			EditorGUILayout.BeginHorizontal();
 
 			bool newFoldout = EditorGUILayout.Foldout(slot.foldout, string.Format(L("usedBy", "Used by {0} renderer(s)"), slot.renderers.Count), true);
 			if (newFoldout != slot.foldout)
 				slot.foldout = newFoldout;
 
+			GUILayout.FlexibleSpace();
+
+			if (GUILayout.Button(L("inspect", "Inspect"), GUILayout.Width(60), GUILayout.Height(20)))
+				InspectMaterial(slot.current);
+
+			if (GUILayout.Button(L("clone", "Clone"), GUILayout.Width(60), GUILayout.Height(20)))
+				CloneMaterial(slot);
+
+			if (GUILayout.Button(L("reset", "Reset"), GUILayout.Width(60), GUILayout.Height(20)))
+				ResetMaterial(slot);
+
+			EditorGUILayout.EndHorizontal();
+
+			// Foldout content: renderer list
 			if (newFoldout)
 			{
 				EditorGUI.indentLevel++;
@@ -138,6 +181,21 @@ namespace YanK
 					EditorGUILayout.ObjectField(renderer, typeof(Renderer), true);
 				EditorGUI.indentLevel--;
 			}
+		}
+
+		private List<MaterialSlot> GetFilteredMaterialSlots()
+		{
+			if (string.IsNullOrEmpty(materialSearchFilter))
+				return materialSlots;
+
+			string filter = materialSearchFilter.ToLowerInvariant();
+			return materialSlots.Where(s =>
+			{
+				if (s.current == null) return false;
+				if (s.current.name.ToLowerInvariant().Contains(filter)) return true;
+				if (s.current.shader != null && s.current.shader.name.ToLowerInvariant().Contains(filter)) return true;
+				return false;
+			}).ToList();
 		}
 
 		// --- Data ---
@@ -236,6 +294,46 @@ namespace YanK
 			foreach (var slot in materialSlots.Where(s => s.selected).ToList())
 				ResetMaterial(slot);
 			ClearMaterialSelection();
+		}
+
+		private void ConfirmBatchResetMaterials()
+		{
+			var selected = materialSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmResetTitle", "Confirm Reset"),
+				string.Format(L("confirmReset", "Reset {0} item(s) to original?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchResetSelected();
+			}
+		}
+
+		private void ConfirmBatchCloneMaterials()
+		{
+			var selected = materialSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmCloneTitle", "Confirm Clone"),
+				string.Format(L("confirmClone", "Clone {0} item(s)?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchCloneSelected();
+			}
+		}
+
+		private void ConfirmBatchReplaceMaterials()
+		{
+			var selected = materialSlots.Where(s => s.selected).ToList();
+			if (selected.Count == 0) return;
+			if (batchReplaceMaterial == null) return;
+			if (EditorUtility.DisplayDialog(
+				L("confirmReplaceTitle", "Confirm Replace"),
+				string.Format(L("confirmReplace", "Replace {0} item(s)?"), selected.Count),
+				"OK", "Cancel"))
+			{
+				BatchReplaceSelected();
+			}
 		}
 
 		private void InspectMaterial(Material material)
