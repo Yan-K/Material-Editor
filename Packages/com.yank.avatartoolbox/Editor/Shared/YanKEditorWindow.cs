@@ -1,0 +1,263 @@
+using UnityEngine;
+using UnityEditor;
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace YanK
+{
+	public abstract class YanKEditorWindow : EditorWindow
+	{
+		// --- Abstract / Virtual ---
+
+		protected abstract string ToolVersion { get; }
+		protected abstract string ToolTitleKey { get; }
+		protected abstract string ToolTitleDefault { get; }
+
+		protected virtual string LocalizationFolder => "YATLocalization";
+
+		// --- Spacing Constants ---
+
+		protected const float ItemSpacing = 4f;
+		protected const float GroupPadding = 6f;
+
+		// --- Cached Styles ---
+
+		protected GUIStyle sectionHeaderStyle;
+		protected GUIStyle statusLabelStyle;
+		protected GUIStyle versionBadgeStyle;
+		protected GUIStyle searchFieldStyle;
+		protected GUIStyle dimLabelStyle;
+		protected GUIStyle cardStyle;
+		protected GUIStyle modifiedCardStyle;
+		protected GUIStyle centeredMessageStyle;
+
+		protected bool stylesInitialized;
+
+		// --- Localization ---
+
+		protected readonly List<string> availableLanguages = new List<string>();
+		protected int selectedLanguageIndex;
+		protected Dictionary<string, string> localizedStrings = new Dictionary<string, string>();
+
+		protected virtual void OnEnable()
+		{
+			RefreshLanguageFiles();
+			LoadDefaultLanguage();
+			LoadLocalizedStrings();
+		}
+
+		// --- Styles ---
+
+		protected void InitStyles()
+		{
+			if (stylesInitialized && cardStyle != null) return;
+
+			sectionHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
+			{
+				fontSize = 13,
+				padding = new RectOffset(4, 0, 2, 2)
+			};
+
+			statusLabelStyle = new GUIStyle(EditorStyles.label)
+			{
+				alignment = TextAnchor.MiddleRight,
+				normal = { textColor = EditorGUIUtility.isProSkin ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f) }
+			};
+
+			versionBadgeStyle = new GUIStyle(EditorStyles.miniLabel)
+			{
+				alignment = TextAnchor.MiddleCenter,
+				normal = {
+					textColor = EditorGUIUtility.isProSkin ? new Color(0.6f, 0.75f, 1f) : new Color(0.2f, 0.35f, 0.7f),
+					background = MakeTex(1, 1, EditorGUIUtility.isProSkin ? new Color(0.25f, 0.3f, 0.4f, 0.5f) : new Color(0.8f, 0.85f, 0.95f, 0.7f))
+				},
+				padding = new RectOffset(6, 6, 2, 2),
+				margin = new RectOffset(4, 0, 3, 0)
+			};
+
+			searchFieldStyle = new GUIStyle(EditorStyles.toolbarSearchField);
+
+			dimLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+			{
+				alignment = TextAnchor.MiddleRight,
+				normal = { textColor = EditorGUIUtility.isProSkin ? new Color(0.55f, 0.55f, 0.55f) : new Color(0.45f, 0.45f, 0.45f) }
+			};
+
+			cardStyle = new GUIStyle("box")
+			{
+				padding = new RectOffset(6, 6, 4, 4),
+				margin = new RectOffset(0, 0, 2, 2)
+			};
+
+			modifiedCardStyle = new GUIStyle()
+			{
+				padding = new RectOffset(6, 6, 4, 4),
+				margin = new RectOffset(0, 0, 2, 2),
+				border = new RectOffset(0, 0, 0, 0)
+			};
+
+			var modBgTex = MakeTex(2, 2, EditorGUIUtility.isProSkin ? new Color(0.35f, 0.33f, 0.15f) : new Color(0.95f, 0.90f, 0.65f));
+			modifiedCardStyle.normal.background = modBgTex;
+
+			centeredMessageStyle = new GUIStyle(EditorStyles.label)
+			{
+				alignment = TextAnchor.MiddleCenter,
+				wordWrap = true
+			};
+
+			stylesInitialized = true;
+		}
+
+		// --- Colors ---
+
+		protected static Color SeparatorColor => EditorGUIUtility.isProSkin
+			? new Color(0.2f, 0.2f, 0.2f)
+			: new Color(0.7f, 0.7f, 0.7f);
+
+		protected static Color HeaderBarColor => EditorGUIUtility.isProSkin
+			? new Color(0.35f, 0.55f, 0.9f, 0.8f)
+			: new Color(0.3f, 0.5f, 0.85f, 0.8f);
+
+		// --- Drawing Helpers ---
+
+		protected void DrawGroupBox(Action content)
+		{
+			EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+			GUILayout.Space(GroupPadding / 2);
+			content?.Invoke();
+			GUILayout.Space(GroupPadding / 2);
+			EditorGUILayout.EndVertical();
+		}
+
+		protected void DrawStyledSeparator()
+		{
+			GUILayout.Space(4);
+			EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1), SeparatorColor);
+			GUILayout.Space(4);
+		}
+
+		protected string DrawSearchField(string currentFilter)
+		{
+			EditorGUILayout.BeginHorizontal();
+			GUILayout.Space(2);
+
+			var newFilter = EditorGUILayout.TextField(currentFilter, searchFieldStyle);
+
+			if (!string.IsNullOrEmpty(newFilter))
+			{
+				if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+					newFilter = "";
+			}
+
+			GUILayout.Space(2);
+			EditorGUILayout.EndHorizontal();
+			return newFilter;
+		}
+
+		protected static Texture2D MakeTex(int width, int height, Color color)
+		{
+			var pixels = new Color[width * height];
+			for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
+			var tex = new Texture2D(width, height);
+			tex.SetPixels(pixels);
+			tex.Apply();
+			tex.hideFlags = HideFlags.HideAndDontSave;
+			return tex;
+		}
+
+		// --- Shared Header ---
+
+		protected virtual void DrawHeader()
+		{
+			GUILayout.Space(8);
+
+			// Row 1: Title + Language selector + Version badge
+			EditorGUILayout.BeginHorizontal();
+
+			EditorGUILayout.LabelField(L(ToolTitleKey, ToolTitleDefault), sectionHeaderStyle, GUILayout.ExpandWidth(false));
+
+			GUILayout.FlexibleSpace();
+
+			int newIndex = EditorGUILayout.Popup(selectedLanguageIndex, availableLanguages.ToArray(), GUILayout.Width(120));
+			if (newIndex != selectedLanguageIndex)
+			{
+				selectedLanguageIndex = newIndex;
+				EditorPrefs.SetInt("YAT_Language", selectedLanguageIndex);
+				LoadLocalizedStrings();
+			}
+
+			GUILayout.Space(4);
+			GUILayout.Label(ToolVersion, versionBadgeStyle);
+
+			EditorGUILayout.EndHorizontal();
+
+			GUILayout.Space(8);
+		}
+
+		protected void DrawCenteredMessage(string message, string iconName)
+		{
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.BeginHorizontal();
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.BeginVertical();
+
+			var iconRect = GUILayoutUtility.GetRect(48, 48, GUILayout.ExpandWidth(false));
+			GUI.DrawTexture(iconRect, EditorGUIUtility.IconContent(iconName).image, ScaleMode.ScaleToFit);
+
+			GUILayout.Space(8);
+			EditorGUILayout.LabelField(message, centeredMessageStyle, GUILayout.Width(300));
+
+			EditorGUILayout.EndVertical();
+			GUILayout.FlexibleSpace();
+			EditorGUILayout.EndHorizontal();
+			GUILayout.FlexibleSpace();
+		}
+
+		// --- Localization ---
+
+		private void RefreshLanguageFiles()
+		{
+			availableLanguages.Clear();
+
+			foreach (var file in Resources.LoadAll<TextAsset>(LocalizationFolder))
+				availableLanguages.Add(Path.GetFileNameWithoutExtension(file.name));
+
+			if (!availableLanguages.Contains("English"))
+				availableLanguages.Insert(0, "English");
+		}
+
+		private void LoadDefaultLanguage()
+		{
+			selectedLanguageIndex = EditorPrefs.GetInt("YAT_Language", availableLanguages.IndexOf("English"));
+			if (selectedLanguageIndex < 0 || selectedLanguageIndex >= availableLanguages.Count)
+				selectedLanguageIndex = 0;
+		}
+
+		private void LoadLocalizedStrings()
+		{
+			localizedStrings.Clear();
+			if (availableLanguages.Count == 0) return;
+
+			string lang = availableLanguages[selectedLanguageIndex];
+			var jsonFile = Resources.Load<TextAsset>($"{LocalizationFolder}/{lang}");
+
+			if (jsonFile != null)
+			{
+				try { localizedStrings = LocalizationParser.Parse(jsonFile.text); }
+				catch { Debug.LogError($"Failed to parse localization file: {lang}"); }
+			}
+			else
+			{
+				Debug.LogWarning($"Localization file for {lang} not found.");
+			}
+
+			Repaint();
+		}
+
+		protected string L(string key, string defaultValue)
+		{
+			return localizedStrings.TryGetValue(key, out string value) ? value : defaultValue;
+		}
+	}
+}
