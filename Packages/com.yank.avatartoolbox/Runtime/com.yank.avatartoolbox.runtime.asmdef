@@ -1,12 +1,8 @@
 {
-    "name": "com.yank.avatartoolbox.editor",
+    "name": "com.yank.avatartoolbox.runtime",
     "rootNamespace": "",
-    "references": [
-        "com.yank.avatartoolbox.runtime"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

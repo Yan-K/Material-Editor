@@ -43,6 +43,19 @@ Drive 600+ blendshapes without losing your mind.
 - **Remap Missing Blendshapes** — Searchable, grouped dropdown plus fuzzy-name auto-match for clips authored on a different avatar
 - **Undo Support** — Every commit registers proper Undo
 
+### Yan-K Scene Controller (YSC)
+
+Control avatar, camera, lighting, and post-processing from a dedicated editor window — works in both Edit Mode and Play Mode.
+
+- **Avatar Control** — Move avatar on X/Y/Z sliders or use Auto Move (ping-pong / circle paths)
+- **Camera Modes** — Orbit mode (pivot around the avatar bone) and Free Fly mode (6-DOF); right-click to aim, WASD/QE to move
+- **Custom Cameras** — Save named camera positions as scene or global presets; custom cameras follow the avatar automatically
+- **Scene Control** — Flat colour or Custom skybox; Fog controls
+- **Directional Light** — Horizontal / Vertical angle sliders with built-in presets (Normal, Backlight, Frontlight)
+- **Rotating Point Lights** — 5 individually coloured point lights orbiting the avatar
+- **Post Processing** — Volume auto-attached to the active camera; browsable profile list with add / clone / remove
+- **Undo Support** — All operations are fully undoable
+
 ### Shared
 
 - **Localization** — English, 简体中文, 繁體中文, 日本語, 한국어
@@ -90,6 +103,10 @@ UI/UX Unified, overall cleanup, changed language format.
 ### v1.1.0 - 2026/04/22
 
 Repository renamed from **Yan-K Material Editor** to **Yan-K Avatar Toolbox**. Added **Yan-K Blendshape Editor (YBE)**: group auto-detection, search/filter, real-time batch slider, shift-click range select, reset-to-zero/default, AnimationClip export (3 modes), AnimationClip import with live preview (4 modes), searchable grouped remap dropdown with fuzzy-name auto-match, and full 5-language localization.
+
+### v1.2.0 - 2026/04/25
+
+Added **Yan-K Scene Controller (YSC)**
 
 ## Credit
 
