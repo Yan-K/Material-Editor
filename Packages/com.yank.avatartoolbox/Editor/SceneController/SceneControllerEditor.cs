@@ -65,7 +65,6 @@ namespace YanK
 		// external edits to preset assets / EditorPrefs are picked up without a domain reload.
 		private void OnFocus()
 		{
-			_globalCamPresets = null;
 			_dirPresetsMerged = null;
 			_ppProfiles = null;
 			Repaint();
@@ -156,32 +155,30 @@ namespace YanK
 			{
 				EditorGUILayout.HelpBox(
 					YanKLocalization.L("scNoAvatarWarning",
-						"No avatar assigned. Assign an avatar above to access Avatar, Play Mode Input, and Camera settings."),
-					MessageType.Warning);
+						"No avatar assigned. Avatar controls are disabled; Camera and Input are still accessible."),
+					MessageType.Info);
 			}
-			else
+
+			YanKInspectorGUI.DrawGroupBox(() =>
 			{
-				YanKInspectorGUI.DrawGroupBox(() =>
-				{
-					_avatarFoldout = YanKInspectorGUI.DrawFoldoutHeader(
-						YanKLocalization.L("scAvatarSection", "Avatar"), _avatarFoldout);
-					if (_avatarFoldout) DrawAvatarSection();
-				});
+				_avatarFoldout = YanKInspectorGUI.DrawFoldoutHeader(
+					YanKLocalization.L("scAvatarSection", "Avatar"), _avatarFoldout);
+				if (_avatarFoldout) DrawAvatarSection();
+			});
 
-				YanKInspectorGUI.DrawGroupBox(() =>
-				{
-					_inputFoldout = YanKInspectorGUI.DrawFoldoutHeader(
-						YanKLocalization.L("scInputSection", "Play Mode Input"), _inputFoldout);
-					if (_inputFoldout) DrawMovementInputSection();
-				});
+			YanKInspectorGUI.DrawGroupBox(() =>
+			{
+				_inputFoldout = YanKInspectorGUI.DrawFoldoutHeader(
+					YanKLocalization.L("scInputSection", "Play Mode Input"), _inputFoldout);
+				if (_inputFoldout) DrawMovementInputSection();
+			});
 
-				YanKInspectorGUI.DrawGroupBox(() =>
-				{
-					_cameraFoldout = YanKInspectorGUI.DrawFoldoutHeader(
-						YanKLocalization.L("scCameraSection", "Camera"), _cameraFoldout);
-					if (_cameraFoldout) DrawCameraSection();
-				});
-			}
+			YanKInspectorGUI.DrawGroupBox(() =>
+			{
+				_cameraFoldout = YanKInspectorGUI.DrawFoldoutHeader(
+					YanKLocalization.L("scCameraSection", "Camera"), _cameraFoldout);
+				if (_cameraFoldout) DrawCameraSection();
+			});
 
 			YanKInspectorGUI.DrawGroupBox(() =>
 			{
@@ -244,10 +241,15 @@ namespace YanK
 				sc.avatarRootName = newRoot != null ? newRoot.gameObject.name : null;
 				sc.avatarHomeCaptured = false;
 				sc.avatarOffset = Vector3.zero;
-				if (sc.avatarRoot != null)
+					if (sc.avatarRoot != null)
 				{
 					sc.avatarHomePosition = sc.avatarRoot.transform.position;
 					sc.avatarHomeCaptured = true;
+				}
+				else if (sc.cameraPivot != null)
+				{
+					// Avatar cleared — reset pivot to default eye-level so orbit still works.
+					sc.cameraPivot.position = new Vector3(0f, 1f, 0f);
 				}
 				SceneControllerRig.EnsureCameraRig(sc);
 				EditorUtility.SetDirty(sc);

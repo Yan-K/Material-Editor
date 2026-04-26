@@ -63,6 +63,8 @@ namespace YanK
 				var pivotGo = new GameObject(SceneController.CameraPivotName);
 				Undo.RegisterCreatedObjectUndo(pivotGo, "Create Camera Pivot");
 				pivotGo.transform.SetParent(sc.transform, false);
+				// Default to eye-level at world origin so orbit works without an avatar.
+				pivotGo.transform.position = new Vector3(0f, 1f, 0f);
 				sc.cameraPivot = pivotGo.transform;
 			}
 
@@ -76,13 +78,48 @@ namespace YanK
 				var camGo = new GameObject(SceneController.DefaultCameraName);
 				Undo.RegisterCreatedObjectUndo(camGo, "Create Default Camera");
 				camGo.transform.SetParent(sc.cameraPivot, false);
-				camGo.AddComponent<Camera>();
+				var cam = camGo.AddComponent<Camera>();
+				cam.nearClipPlane = 0.01f;
 				sc.defaultCameraGo = camGo;
+			}
+
+			// ---- FreeFlyCamera ----
+			if (sc.freeFlyCamera == null)
+			{
+				var t = sc.cameraPivot.Find(SceneController.FreeFlyCamera);
+				if (t != null) sc.freeFlyCamera = t.gameObject;
+			}
+			if (sc.freeFlyCamera == null)
+			{
+				var ffGo = new GameObject(SceneController.FreeFlyCamera);
+				Undo.RegisterCreatedObjectUndo(ffGo, "Create FreeFly Camera");
+				ffGo.transform.SetParent(sc.cameraPivot, false);
+				ffGo.transform.localPosition = new Vector3(0f, 0f, -1.5f);
+				var ffCam = ffGo.AddComponent<Camera>();
+				ffCam.nearClipPlane = 0.01f;
+				if (sc.defaultCameraGo != null)
+				{
+					var src = sc.defaultCameraGo.GetComponent<Camera>();
+					if (src != null)
+					{
+						ffCam.clearFlags      = src.clearFlags;
+						ffCam.backgroundColor = src.backgroundColor;
+						ffCam.nearClipPlane   = src.nearClipPlane;
+						ffCam.farClipPlane    = src.farClipPlane;
+						ffCam.cullingMask     = src.cullingMask;
+						ffCam.fieldOfView     = src.fieldOfView;
+					}
+				}
+				// Start inactive — DefaultCamera is active in Orbit mode by default.
+				ffGo.SetActive(false);
+				sc.freeFlyCamera = ffGo;
 			}
 
 			if (PostProcessingReflection.IsAvailable)
 			{
 				PostProcessingReflection.EnsureLayer(sc.defaultCameraGo, 0);
+				if (sc.freeFlyCamera != null)
+					PostProcessingReflection.EnsureLayer(sc.freeFlyCamera, 0);
 				foreach (var entry in sc.sceneCustomCameras)
 				{
 					if (entry?.gameObject != null)

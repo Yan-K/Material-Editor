@@ -116,10 +116,11 @@ namespace YanK
 	[AddComponentMenu("")]
 	public class SceneController : MonoBehaviour
 	{
-		public const string Version = "v1.0.0";
+		public const string Version = "v1.1.0";
 		public const string RootName = "Yan-K Scene Controller";
 		public const string CameraPivotName = "CameraPivot";
 		public const string DefaultCameraName = "DefaultCamera";
+		public const string FreeFlyCamera = "FreeFlyCamera";
 		public const string DirLightName = "DirectionalLight";
 		public const string PointLightsRootName = "RotatingPointLights";
 		public const string PostProcessVolumeName = "PostProcessVolume";
@@ -149,11 +150,12 @@ namespace YanK
 		public Transform boneTargetOverride;
 		public float cameraDistance = 1.5f;
 		public float cameraYaw = 0f;
-		public float cameraPitch = 5f;
+		public float cameraPitch = 0f;
 		public float cameraFov = 60f;
 
 		public Transform cameraPivot;
 		public GameObject defaultCameraGo;
+		public GameObject freeFlyCamera;      // built-in Free Fly camera; auto-restored if deleted
 		public string activeCustomCameraName; // empty == DefaultCamera
 		[NonSerialized] public List<CustomCameraEntry> sceneCustomCameras = new List<CustomCameraEntry>();
 
@@ -413,8 +415,13 @@ namespace YanK
 				t.LookAt(lookCenter, Vector3.up);
 			}
 
-			// FOV is always driven by the slider, in every mode.
-			if (defaultCameraGo != null && !isCustomActive)
+			// FOV is always driven by the slider, in every mode and for every active camera.
+			if (isCustomActive)
+			{
+				var cam = GetActiveCamera();
+				if (cam != null) cam.fieldOfView = cameraFov;
+			}
+			else if (defaultCameraGo != null)
 			{
 				var cam = defaultCameraGo.GetComponent<Camera>();
 				if (cam != null) cam.fieldOfView = cameraFov;

@@ -67,7 +67,7 @@ namespace YanK
 				sc.cameraDistance = Mathf.Clamp(sc.cameraDistance - step, 0.2f, 20f);
 			}
 
-			if ((h != 0f || v != 0f || y != 0f) && sc.avatarRoot != null)
+			if (h != 0f || v != 0f || y != 0f)
 			{
 				Transform ct = cam.transform;
 				Vector3 forward = ct.forward; forward.y = 0f; forward.Normalize();
@@ -75,8 +75,11 @@ namespace YanK
 				Vector3 delta = (right * h + forward * v) * sc.moveSpeed * speedMult * dt
 				                + Vector3.up * (y * sc.verticalSpeed * speedMult * dt);
 
-				sc.avatarHomePosition += delta;
-				sc.avatarRoot.transform.position += delta;
+				if (sc.avatarRoot != null)
+				{
+					sc.avatarHomePosition += delta;
+					sc.avatarRoot.transform.position += delta;
+				}
 				if (sc.cameraPivot != null) sc.cameraPivot.position += delta;
 			}
 		}
@@ -111,17 +114,24 @@ namespace YanK
 			}
 			else
 			{
-				// Not holding RMB: WASD/QE moves the avatar, same as Orbit mode.
-				if ((h != 0f || v != 0f || y != 0f) && sc.avatarRoot != null)
+				// Not holding RMB: WASD/QE moves the avatar, or the camera if no avatar.
+				if (h != 0f || v != 0f || y != 0f)
 				{
 					Vector3 forward = ct.forward; forward.y = 0f; forward.Normalize();
 					Vector3 right = ct.right; right.y = 0f; right.Normalize();
 					Vector3 delta = (right * h + forward * v) * sc.moveSpeed * speedMult * dt
 					                + Vector3.up * (y * sc.verticalSpeed * speedMult * dt);
 
-					sc.avatarHomePosition += delta;
-					sc.avatarRoot.transform.position += delta;
-					if (sc.cameraPivot != null) sc.cameraPivot.position += delta;
+					if (sc.avatarRoot != null)
+					{
+						sc.avatarHomePosition += delta;
+						sc.avatarRoot.transform.position += delta;
+						if (sc.cameraPivot != null) sc.cameraPivot.position += delta;
+					}
+					else
+					{
+						ct.position += delta;
+					}
 				}
 			}
 		}

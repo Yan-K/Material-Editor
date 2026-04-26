@@ -108,6 +108,10 @@ Repository renamed from **Yan-K Material Editor** to **Yan-K Avatar Toolbox**. A
 
 Added **Yan-K Scene Controller (YSC)**
 
+### v1.2.1 - 2026/04/26
+
+Updated YSC to 1.1.0, bug fixes.
+
 ## Credit
 
 - Yan-K ([@YanKMW](https://github.com/Yan-K))

@@ -9,34 +9,47 @@ namespace YanK
 		// Camera preset Add/Remove workflow (Add name buffer + Remove selection set).
 		private readonly PresetWorkflow<string> _camWorkflow = new PresetWorkflow<string>();
 
-		// Nullable cache — lazy-reloaded on first read, OnFocus, and after mutation.
-		private List<SceneControllerPresets.CameraPreset> _globalCamPresets;
-		private List<SceneControllerPresets.CameraPreset> GlobalCamPresets =>
-			_globalCamPresets ??= SceneControllerPresets.LoadCameraPresets();
+		// Camera that was just created by "Add New" and is pending a name confirmation.
+		private GameObject _pendingNewCamera;
+		private string _previousActiveCameraName;
 
-		private void OnEnableCamera()
-		{
-			_globalCamPresets = null; // force lazy reload on first use
-		}
+		private void OnEnableCamera() { }
 
 		private void DrawCameraSection()
 		{
 			GUILayout.Space(4);
 
+			// Repair missing built-in cameras (DefaultCamera / FreeFlyCamera) every repaint,
+			// then sync active states in case a camera was just rebuilt.
+			SceneControllerRig.EnsureCameraRig(sc);
+			sc.RefreshSceneCustomCameras();
+			ApplyActiveCamera();
+
 			var mode = sc.GetEffectiveCameraMode();
 			bool isFreeFly = mode == CameraControlMode.FreeFly;
 			bool isOrbit = mode == CameraControlMode.Orbit;
 
-			// ---- Control mode ----
-			var newMode = (CameraControlMode)EditorGUILayout.EnumPopup(
-				YanKLocalization.L("scCamMode", "Control Mode"), sc.cameraMode);
+			// ---- Control mode (2-button toggle) ----
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField(YanKLocalization.L("scCamMode", "Control Mode"), GUILayout.Width(EditorGUIUtility.labelWidth));
+			int modeIdx = GUILayout.Toolbar(
+				sc.cameraMode == CameraControlMode.Orbit ? 0 : 1,
+				new[] { YanKLocalization.L("scOrbit", "Orbit"), YanKLocalization.L("scFreeFly", "Free Fly") });
+			EditorGUILayout.EndHorizontal();
+			var newMode = modeIdx == 0 ? CameraControlMode.Orbit : CameraControlMode.FreeFly;
 			if (newMode != sc.cameraMode)
 			{
 				Undo.RecordObject(sc, "Change Camera Mode");
 				sc.cameraMode = newMode;
-				if (newMode == CameraControlMode.Orbit && !string.IsNullOrEmpty(sc.activeCustomCameraName))
+				if (newMode == CameraControlMode.Orbit)
 				{
 					sc.activeCustomCameraName = "";
+					ApplyActiveCamera();
+				}
+				else if (newMode == CameraControlMode.FreeFly && string.IsNullOrEmpty(sc.activeCustomCameraName))
+				{
+					sc.activeCustomCameraName = SceneController.FreeFlyCamera;
+					SyncFovFromActiveCustomCamera(sc.activeCustomCameraName);
 					ApplyActiveCamera();
 				}
 			}
@@ -84,7 +97,7 @@ namespace YanK
 
 		private void DrawBoneTargetRow()
 		{
-			using (new EditorGUI.DisabledScope(sc.boneTargetOverride != null))
+			using (new EditorGUI.DisabledScope(sc.boneTargetOverride != null || sc.avatarRoot == null))
 			{
 				EditorGUILayout.LabelField(YanKLocalization.L("scBoneTarget", "Inspect Bone"));
 				int curBone = (int)sc.boneTarget;
@@ -102,9 +115,15 @@ namespace YanK
 				}
 			}
 
+			EditorGUILayout.BeginHorizontal();
 			var newOverride = (Transform)EditorGUILayout.ObjectField(
 				YanKLocalization.L("scBoneOverride", "Custom Target (override)"),
 				sc.boneTargetOverride, typeof(Transform), true);
+			GUI.enabled = sc.boneTargetOverride != null;
+			if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(18)))
+				newOverride = null;
+			GUI.enabled = true;
+			EditorGUILayout.EndHorizontal();
 			if (newOverride != sc.boneTargetOverride)
 			{
 				Undo.RecordObject(sc, "Change Bone Override");
@@ -132,12 +151,13 @@ namespace YanK
 				var act = SceneControllerPresetUI.DrawAddRow(ref _camWorkflow.addName);
 				if (act == SceneControllerPresetUI.AddAction.Save)
 				{
-					SaveNewCameraPreset(_camWorkflow.addName.Trim());
+					ConfirmPendingCamera(_camWorkflow.addName.Trim());
 					_camWorkflow.addOpen = false;
 					GUIUtility.ExitGUI();
 				}
 				else if (act == SceneControllerPresetUI.AddAction.Cancel)
 				{
+					CancelPendingCamera();
 					_camWorkflow.addOpen = false;
 					GUIUtility.ExitGUI();
 				}
@@ -149,7 +169,7 @@ namespace YanK
 		private void DrawCustomCameraPickerRow()
 		{
 			string currentLabel = string.IsNullOrEmpty(sc.activeCustomCameraName)
-				? SceneController.DefaultCameraName
+				? YanKLocalization.L("scDefaultCam", "(Default Camera)")
 				: sc.activeCustomCameraName;
 
 			EditorGUILayout.BeginHorizontal();
@@ -157,7 +177,10 @@ namespace YanK
 
 			var items = BuildCustomCameraItems();
 
-			YanKSearchableDropdown.Field(currentLabel, items, HandleCameraPick, GUILayout.ExpandWidth(true));
+			using (new EditorGUI.DisabledScope(_camWorkflow.addOpen))
+			{
+				YanKSearchableDropdown.Field(currentLabel, items, HandleCameraPick, GUILayout.ExpandWidth(true));
+			}
 
 			if (GUILayout.Button(YanKLocalization.L("scPing", "Ping"), EditorStyles.miniButton, GUILayout.Width(48)))
 			{
@@ -165,16 +188,17 @@ namespace YanK
 				if (go != null) EditorGUIUtility.PingObject(go);
 			}
 
-			// Add / Remove buttons live on the right of Ping per user request.
+			// Add / Remove buttons.
 			if (!_camWorkflow.addOpen)
 			{
 				if (GUILayout.Button(YanKLocalization.L("scAddNewPreset", "Add New"),
 					EditorStyles.miniButton, GUILayout.Width(70)))
 				{
-					var sceneNames = new List<string>(sc.sceneCustomCameras.Count);
-					foreach (var e in sc.sceneCustomCameras) if (e != null) sceneNames.Add(e.name);
-					_camWorkflow.OpenAdd(
-						SceneControllerPresets.NextDefaultCameraPresetName("NewCamera", sceneNames));
+					string newName = NextSceneCameraName("Camera");
+					_previousActiveCameraName = sc.activeCustomCameraName;
+					_pendingNewCamera = CreateAndActivateNewCamera(newName);
+					_camWorkflow.OpenAdd(newName);
+					if (_pendingNewCamera != null) EditorGUIUtility.PingObject(_pendingNewCamera);
 				}
 
 				using (new EditorGUI.DisabledScope(_camWorkflow.addOpen))
@@ -191,35 +215,14 @@ namespace YanK
 
 		private List<YanKSearchableDropdown.Item> BuildCustomCameraItems()
 		{
-			// O(n+m) dedup via hashset — the previous O(n*m) List.Exists was noticeable
-			// with many scene cameras.
-			var sceneNames = new HashSet<string>();
-			foreach (var entry in sc.sceneCustomCameras)
-				if (entry != null && !string.IsNullOrEmpty(entry.name)) sceneNames.Add(entry.name);
-
-			var items = new List<YanKSearchableDropdown.Item>(1 + sc.sceneCustomCameras.Count + GlobalCamPresets.Count)
-			{
-				new YanKSearchableDropdown.Item
-				{
-					label = SceneController.DefaultCameraName,
-					payload = new CamPick { kind = CamPickKind.Default }
-				}
-			};
+			var items = new List<YanKSearchableDropdown.Item>(sc.sceneCustomCameras.Count);
 			foreach (var entry in sc.sceneCustomCameras)
 			{
+				if (entry == null || string.IsNullOrEmpty(entry.name)) continue;
 				items.Add(new YanKSearchableDropdown.Item
 				{
 					label = entry.name,
 					payload = new CamPick { kind = CamPickKind.Scene, name = entry.name }
-				});
-			}
-			foreach (var p in GlobalCamPresets)
-			{
-				if (p == null || sceneNames.Contains(p.name)) continue;
-				items.Add(new YanKSearchableDropdown.Item
-				{
-					label = p.name,
-					payload = new CamPick { kind = CamPickKind.Global, name = p.name }
 				});
 			}
 			return items;
@@ -229,45 +232,28 @@ namespace YanK
 		{
 			var pick = (CamPick)payload;
 			Undo.RecordObject(sc, "Switch Active Camera");
-			switch (pick.kind)
-			{
-				case CamPickKind.Default:
-					sc.activeCustomCameraName = "";
-					break;
-				case CamPickKind.Scene:
-					sc.activeCustomCameraName = pick.name;
-					break;
-				case CamPickKind.Global:
-					var preset = GlobalCamPresets.Find(pp => pp.name == pick.name);
-					if (preset != null)
-					{
-						InstantiatePresetAsSceneCamera(preset);
-						sc.activeCustomCameraName = preset.name;
-					}
-					break;
-			}
+			sc.activeCustomCameraName = pick.name;
+			SyncFovFromActiveCustomCamera(pick.name);
 			ApplyActiveCamera();
+		}
+
+		/// <summary>Reads the FOV from a named scene camera and writes it into <see cref="SceneController.cameraFov"/> so the slider reflects the camera's actual value.</summary>
+		private void SyncFovFromActiveCustomCamera(string cameraName)
+		{
+			var entry = sc.sceneCustomCameras?.Find(e => e != null && e.name == cameraName);
+			if (entry?.gameObject == null) return;
+			var cam = entry.gameObject.GetComponentInChildren<Camera>(true);
+			if (cam != null) sc.cameraFov = cam.fieldOfView;
 		}
 
 		private void DrawCamRemovePanel()
 		{
-			// Build a single flat list of removable names: scene cameras first,
-			// then any global presets that don't have a matching scene camera.
-			var sceneNames = new HashSet<string>();
-			foreach (var entry in sc.sceneCustomCameras)
-				if (entry != null && !string.IsNullOrEmpty(entry.name)) sceneNames.Add(entry.name);
-
 			var removable = new List<SceneControllerPresetUI.RemoveEntry<string>>();
 			foreach (var entry in sc.sceneCustomCameras)
 			{
 				if (entry == null || string.IsNullOrEmpty(entry.name)) continue;
+				if (entry.name == SceneController.FreeFlyCamera) continue; // built-in, protected
 				removable.Add(new SceneControllerPresetUI.RemoveEntry<string>(entry.name, entry.name));
-			}
-			foreach (var p in GlobalCamPresets)
-			{
-				if (p == null || string.IsNullOrEmpty(p.name)) continue;
-				if (sceneNames.Contains(p.name)) continue;
-				removable.Add(new SceneControllerPresetUI.RemoveEntry<string>(p.name, p.name));
 			}
 
 			var action = SceneControllerPresetUI.DrawRemovePanel(
@@ -277,17 +263,13 @@ namespace YanK
 			{
 				foreach (var n in toRemove)
 				{
-					// Destroy the matching scene camera (if any).
 					var ent = sc.sceneCustomCameras.Find(e => e != null && e.name == n);
 					if (ent?.gameObject != null)
 					{
 						if (sc.activeCustomCameraName == ent.name) sc.activeCustomCameraName = "";
 						Undo.DestroyObjectImmediate(ent.gameObject);
 					}
-					// Always strip the global preset so it doesn't re-appear.
-					SceneControllerPresets.RemoveCameraPreset(n);
 				}
-				_globalCamPresets = null; // force lazy reload
 				sc.RefreshSceneCustomCameras();
 				_camWorkflow.CloseAll();
 				GUIUtility.ExitGUI();
@@ -321,57 +303,88 @@ namespace YanK
 			}
 		}
 
-		private void SaveNewCameraPreset(string requested)
+		private string NextSceneCameraName(string baseName)
 		{
-			// Auto-rename on duplicate unless the user typed an EXACT existing name
-			// (in which case we overwrite silently).
-			var list = SceneControllerPresets.LoadCameraPresets();
-			bool overwrite = list.Exists(p => p.name == requested);
-			string finalName = overwrite ? requested : SceneControllerPresets.MakeUniqueCameraPresetName(requested);
-
-			// Capture from currently active camera if any, otherwise from defaults.
-			var activeGo = GetActiveCameraGo();
-			Transform src = activeGo != null ? activeGo.transform : sc.defaultCameraGo?.transform;
-			float fov = sc.cameraFov;
-			if (activeGo != null)
-			{
-				var cam = activeGo.GetComponent<Camera>();
-				if (cam != null) fov = cam.fieldOfView;
-			}
-
-			var preset = new SceneControllerPresets.CameraPreset
-			{
-				name = finalName,
-				localPosition = src != null ? src.localPosition : Vector3.zero,
-				localEulerAngles = src != null ? src.localEulerAngles : Vector3.zero,
-				fieldOfView = fov
-			};
-			SceneControllerPresets.AddCameraPreset(preset);
-			_globalCamPresets = null; // force lazy reload
+			var taken = new HashSet<string>();
+			foreach (var e in sc.sceneCustomCameras)
+				if (e != null && !string.IsNullOrEmpty(e.name)) taken.Add(e.name);
+			if (!taken.Contains(baseName)) return baseName;
+			int i = 1;
+			while (taken.Contains(baseName + i)) i++;
+			return baseName + i;
 		}
 
-		private GameObject InstantiatePresetAsSceneCamera(SceneControllerPresets.CameraPreset preset)
+		private GameObject CreateAndActivateNewCamera(string name)
 		{
 			SceneControllerRig.EnsureCameraRig(sc);
-			var existing = sc.cameraPivot.Find(preset.name);
-			if (existing != null) return existing.gameObject;
-
-			var go = new GameObject(preset.name);
-			Undo.RegisterCreatedObjectUndo(go, "Instantiate Camera Preset");
+			var go = new GameObject(name);
+			Undo.RegisterCreatedObjectUndo(go, "Add Custom Camera");
 			go.transform.SetParent(sc.cameraPivot, false);
-			go.transform.localPosition = preset.localPosition;
-			go.transform.localEulerAngles = preset.localEulerAngles;
-
+			// Start at the default camera position so the view is immediately useful.
+			if (sc.defaultCameraGo != null)
+				go.transform.SetPositionAndRotation(
+					sc.defaultCameraGo.transform.position,
+					sc.defaultCameraGo.transform.rotation);
 			var cam = go.AddComponent<Camera>();
-			cam.fieldOfView = preset.fieldOfView;
+			cam.fieldOfView = sc.cameraFov;
+			if (sc.defaultCameraGo != null)
+			{
+				var src = sc.defaultCameraGo.GetComponent<Camera>();
+				if (src != null)
+				{
+					cam.clearFlags      = src.clearFlags;
+					cam.backgroundColor = src.backgroundColor;
+					cam.nearClipPlane   = src.nearClipPlane;
+					cam.farClipPlane    = src.farClipPlane;
+					cam.cullingMask     = src.cullingMask;
+				}
+			}
 			if (PostProcessingReflection.IsAvailable)
 				PostProcessingReflection.EnsureLayer(go, 0);
-
 			sc.RefreshSceneCustomCameras();
+			sc.activeCustomCameraName = name;
+			ApplyActiveCamera();
 			return go;
 		}
 
-		private enum CamPickKind { Default, Scene, Global }
+		private void ConfirmPendingCamera(string newName)
+		{
+			if (_pendingNewCamera == null) return;
+			string oldName = _pendingNewCamera.name;
+			// Ensure the typed name is unique among existing scene cameras.
+			var taken = new HashSet<string>();
+			foreach (var e in sc.sceneCustomCameras)
+				if (e != null && e.name != oldName && !string.IsNullOrEmpty(e.name)) taken.Add(e.name);
+			string uniqueName = newName;
+			if (taken.Contains(uniqueName))
+			{
+				int i = 1;
+				while (taken.Contains(uniqueName + i)) i++;
+				uniqueName += i;
+			}
+			Undo.RecordObject(_pendingNewCamera, "Rename Camera");
+			_pendingNewCamera.name = uniqueName;
+			sc.activeCustomCameraName = uniqueName;
+			sc.RefreshSceneCustomCameras();
+			ApplyActiveCamera();
+			_pendingNewCamera = null;
+			_previousActiveCameraName = null;
+		}
+
+		private void CancelPendingCamera()
+		{
+			if (_pendingNewCamera != null)
+			{
+				Undo.DestroyObjectImmediate(_pendingNewCamera);
+				_pendingNewCamera = null;
+			}
+			sc.activeCustomCameraName = _previousActiveCameraName ?? "";
+			sc.RefreshSceneCustomCameras();
+			ApplyActiveCamera();
+			_previousActiveCameraName = null;
+		}
+
+		private enum CamPickKind { Scene }
 		private struct CamPick { public CamPickKind kind; public string name; }
 	}
 }
