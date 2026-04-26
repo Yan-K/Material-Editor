@@ -9,4 +9,7 @@
     "url": "https://Yan-K.tv/"
   },
   "url": "https://github.com/Yan-K/AvatarToolbox"
+  "legacyPackages": [
+    "com.yank.material-editor"
+  ]
 }
