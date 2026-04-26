@@ -1,7 +1,7 @@
 {
   "name": "com.yank.avatartoolbox",
   "displayName": "Yan-K Avatar Toolbox",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "unity": "2022.3",
   "description": "Yan-K Avatar Tools Collection",
   "author": {
@@ -9,7 +9,7 @@
     "url": "https://Yan-K.tv/"
   },
   "url": "https://github.com/Yan-K/AvatarToolbox"
-  "legacyPackages": [
+  "legacyPackages": {
     "com.yank.material-editor"
-  ]
+  }
 }
