@@ -6,9 +6,6 @@ namespace YanK
 {
 	public partial class BlendshapeEditorTool : YanKEditorWindow
 	{
-		private const string Version = "v1.0.0";
-
-		protected override string ToolVersion => Version;
 		protected override string ToolTitleKey => "bseTitle";
 		protected override string ToolTitleDefault => "Yan-K Blendshape Editor (YBE)";
 
@@ -93,7 +90,7 @@ namespace YanK
 			if (targetRenderer == null || targetRenderer.sharedMesh == null)
 			{
 				DrawCenteredMessage(
-					L("bseNoSMR", "Assign an Avatar Root (with Animator) and a SkinnedMeshRenderer above to begin."),
+					L("bseNoSMR", "Assign an Avatar Root and a SkinnedMeshRenderer above to begin."),
 					"d_SkinnedMeshRenderer Icon");
 				return;
 			}

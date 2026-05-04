@@ -14,10 +14,8 @@ namespace YanK
 		public const float GroupPadding = 6f;
 
 		private static GUIStyle _sectionHeaderStyle;
-		private static GUIStyle _versionBadgeStyle;
 		private static GUIStyle _cardStyle;
 		private static GUIStyle _centeredMessageStyle;
-		private static Texture2D _badgeTex;
 
 		public static GUIStyle SectionHeaderStyle
 		{
@@ -25,15 +23,6 @@ namespace YanK
 			{
 				EnsureStyles();
 				return _sectionHeaderStyle;
-			}
-		}
-
-		public static GUIStyle VersionBadgeStyle
-		{
-			get
-			{
-				EnsureStyles();
-				return _versionBadgeStyle;
 			}
 		}
 
@@ -61,30 +50,12 @@ namespace YanK
 
 		public static void EnsureStyles()
 		{
-			if (_sectionHeaderStyle != null && _badgeTex != null) return;
+			if (_sectionHeaderStyle != null) return;
 
 			_sectionHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
 			{
 				fontSize = 13,
 				padding = new RectOffset(4, 0, 2, 2)
-			};
-
-			_badgeTex = MakeTex(1, 1, EditorGUIUtility.isProSkin
-				? new Color(0.25f, 0.3f, 0.4f, 0.5f)
-				: new Color(0.8f, 0.85f, 0.95f, 0.7f));
-
-			_versionBadgeStyle = new GUIStyle(EditorStyles.miniLabel)
-			{
-				alignment = TextAnchor.MiddleCenter,
-				normal =
-				{
-					textColor = EditorGUIUtility.isProSkin
-						? new Color(0.6f, 0.75f, 1f)
-						: new Color(0.2f, 0.35f, 0.7f),
-					background = _badgeTex
-				},
-				padding = new RectOffset(6, 6, 2, 2),
-				margin = new RectOffset(4, 0, 3, 0)
 			};
 
 			_cardStyle = new GUIStyle("box")
@@ -121,7 +92,7 @@ namespace YanK
 			return EditorGUILayout.Foldout(expanded, label, true, EditorStyles.foldoutHeader);
 		}
 
-		public static void DrawHeaderRow(string title, string version)
+		public static void DrawHeaderRow(string title)
 		{
 			EnsureStyles();
 			GUILayout.Space(8);
@@ -139,20 +110,24 @@ namespace YanK
 				if (next != cur) YanKLocalization.SelectedIndex = next;
 			}
 
-			GUILayout.Space(4);
-			GUILayout.Label(version, _versionBadgeStyle);
 			EditorGUILayout.EndHorizontal();
 			GUILayout.Space(8);
 		}
 
+		// Cache solid-color textures so we don't leak a new Texture2D on every call.
+		private static readonly System.Collections.Generic.Dictionary<Color, Texture2D> _texCache
+			= new System.Collections.Generic.Dictionary<Color, Texture2D>();
+
 		public static Texture2D MakeTex(int w, int h, Color color)
 		{
+			if (_texCache.TryGetValue(color, out var cached) && cached != null) return cached;
 			var pixels = new Color[w * h];
 			for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
 			var tex = new Texture2D(w, h);
 			tex.SetPixels(pixels);
 			tex.Apply();
 			tex.hideFlags = HideFlags.HideAndDontSave;
+			_texCache[color] = tex;
 			return tex;
 		}
 	}

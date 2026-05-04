@@ -47,10 +47,7 @@ namespace YanK
 				GUILayout.Space(8);
 				bool newIncludeInactive = EditorGUILayout.ToggleLeft(L("includeInactive", "Include Inactive"), includeInactive, GUILayout.Width(120), GUILayout.Height(30));
 				if (newIncludeInactive != includeInactive)
-				{
-					includeInactive = newIncludeInactive;
-					EditorPrefs.SetBool("YME_IncludeInactive", includeInactive);
-				}
+					SetIncludeInactive(newIncludeInactive);
 				EditorGUILayout.EndHorizontal();
 			});
 

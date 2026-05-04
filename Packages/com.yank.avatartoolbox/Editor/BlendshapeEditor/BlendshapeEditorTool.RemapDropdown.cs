@@ -90,7 +90,7 @@ namespace YanK
 			var dd = new BlendshapeSlotDropdown(
 				cachedRemapDropdownState,
 				slots,
-				L("bseRemapIgnore", "Ignore"),
+				L("bseRemapIgnore", "(Ignore)"),
 				L("bseGroupGeneral", "General"),
 				onPicked);
 			dd.Show(rect);

@@ -189,14 +189,12 @@ namespace YanK
 			var result = new List<ScriptableObject>();
 			if (!PostProcessingReflection.IsAvailable) return result;
 
-			if (!AssetDatabase.IsValidFolder(SceneControllerConstants.ProfileFolder))
-			{
-				Directory.CreateDirectory(SceneControllerConstants.ProfileFolder);
-				AssetDatabase.Refresh();
-			}
+			EnsureUserProfileFolder();
+			SeedUserProfilesFromPackage();
 
-			var guids = AssetDatabase.FindAssets("t:" + PostProcessingReflection.ProfileType.Name,
-				new[] { SceneControllerConstants.ProfileFolder });
+			var folder = SceneControllerConstants.ProfileFolder;
+			var guids = AssetDatabase.FindAssets(
+				"t:" + PostProcessingReflection.ProfileType.Name, new[] { folder });
 			foreach (var g in guids)
 			{
 				var path = AssetDatabase.GUIDToAssetPath(g);
@@ -205,6 +203,59 @@ namespace YanK
 			}
 			result.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
 			return result;
+		}
+
+		/// <summary>
+		/// Creates the user-editable profiles folder (default <c>Assets/YanK/PostProcessingProfiles</c>)
+		/// when missing — including any parent folders. Honours the EditorPrefs override.
+		/// </summary>
+		private static void EnsureUserProfileFolder()
+		{
+			var folder = SceneControllerConstants.ProfileFolder;
+			if (AssetDatabase.IsValidFolder(folder)) return;
+
+			// Walk the path and create any missing segments via AssetDatabase so the
+			// folder shows up correctly with .meta files.
+			var parts = folder.Split('/');
+			string acc = parts[0]; // "Assets"
+			for (int i = 1; i < parts.Length; i++)
+			{
+				string next = acc + "/" + parts[i];
+				if (!AssetDatabase.IsValidFolder(next))
+					AssetDatabase.CreateFolder(acc, parts[i]);
+				acc = next;
+			}
+			AssetDatabase.Refresh();
+		}
+
+		/// <summary>
+		/// On first use, copies the package-shipped seed profiles into the user folder
+		/// so they survive package updates. Existing files (matched by filename) are
+		/// preserved — we never overwrite the user's customised assets.
+		/// </summary>
+		private static void SeedUserProfilesFromPackage()
+		{
+			var seedFolder = SceneControllerConstants.ProfileSeedFolder;
+			var userFolder = SceneControllerConstants.ProfileFolder;
+			if (!AssetDatabase.IsValidFolder(seedFolder)) return;
+			if (!AssetDatabase.IsValidFolder(userFolder)) return;
+
+			var seedGuids = AssetDatabase.FindAssets(
+				"t:" + PostProcessingReflection.ProfileType.Name, new[] { seedFolder });
+			bool didCopy = false;
+			foreach (var g in seedGuids)
+			{
+				var srcPath = AssetDatabase.GUIDToAssetPath(g);
+				var fileName = Path.GetFileName(srcPath);
+				var dstPath = userFolder + "/" + fileName;
+				if (File.Exists(dstPath)) continue; // never overwrite user changes
+				if (AssetDatabase.CopyAsset(srcPath, dstPath)) didCopy = true;
+			}
+			if (didCopy)
+			{
+				AssetDatabase.SaveAssets();
+				AssetDatabase.Refresh();
+			}
 		}
 
 		private string MakeUniqueProfileName(string requested)
@@ -232,11 +283,7 @@ namespace YanK
 		private void AddBlankProfile(string requested)
 		{
 			if (!PostProcessingReflection.IsAvailable) return;
-			if (!AssetDatabase.IsValidFolder(SceneControllerConstants.ProfileFolder))
-			{
-				Directory.CreateDirectory(SceneControllerConstants.ProfileFolder);
-				AssetDatabase.Refresh();
-			}
+			EnsureUserProfileFolder();
 
 			// Auto-rename on duplicate unless user typed an EXACT existing name (overwrite case).
 			var profiles = PpProfiles;

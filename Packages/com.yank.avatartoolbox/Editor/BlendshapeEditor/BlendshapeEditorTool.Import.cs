@@ -279,7 +279,7 @@ namespace YanK
 			if (!useAdvancedDropdown)
 			{
 				popupLabels = new string[nonSepSlots.Count + 1];
-				popupLabels[0] = L("bseRemapIgnore", "Ignore");
+				popupLabels[0] = L("bseRemapIgnore", "(Ignore)");
 				for (int i = 0; i < nonSepSlots.Count; i++) popupLabels[i + 1] = nonSepSlots[i].name;
 			}
 
@@ -292,7 +292,7 @@ namespace YanK
 				EditorGUILayout.LabelField("→", GUILayout.Width(16));
 
 				string currentLabel = entry.targetSlotIndex < 0
-					? L("bseRemapIgnore", "Ignore")
+					? L("bseRemapIgnore", "(Ignore)")
 					: slots[entry.targetSlotIndex].name;
 
 				if (useAdvancedDropdown)

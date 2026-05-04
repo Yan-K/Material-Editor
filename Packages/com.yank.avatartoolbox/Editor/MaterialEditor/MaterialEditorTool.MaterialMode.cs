@@ -8,13 +8,25 @@ namespace YanK
 {
 	public partial class MaterialEditorTool
 	{
+		private class RendererRef
+		{
+			public Renderer renderer;
+			public int materialIndex;
+		}
+
 		private class MaterialSlot
 		{
 			public Material current;
 			public Material original;
-			public List<Renderer> renderers = new List<Renderer>();
+			// Tracks the exact (renderer, slot-index) pairs this slot was scanned from.
+			// This keeps distinct slots independent even when they share the same Material asset.
+			public List<RendererRef> refs = new List<RendererRef>();
 			public bool foldout;
 			public bool selected;
+
+			// Convenience: unique renderer list for display.
+			public IEnumerable<Renderer> renderers => refs.Select(r => r.renderer).Distinct();
+			public int rendererCount => refs.Select(r => r.renderer).Distinct().Count();
 		}
 
 		private readonly List<MaterialSlot> materialSlots = new List<MaterialSlot>();
@@ -39,10 +51,7 @@ namespace YanK
 				GUILayout.Space(8);
 				bool newIncludeInactive = EditorGUILayout.ToggleLeft(L("includeInactive", "Include Inactive"), includeInactive, GUILayout.Width(120), GUILayout.Height(30));
 				if (newIncludeInactive != includeInactive)
-				{
-					includeInactive = newIncludeInactive;
-					EditorPrefs.SetBool("YME_IncludeInactive", includeInactive);
-				}
+					SetIncludeInactive(newIncludeInactive);
 				EditorGUILayout.EndHorizontal();
 			});
 
@@ -156,7 +165,7 @@ namespace YanK
 			// Row 2: Foldout + Action buttons on same line
 			EditorGUILayout.BeginHorizontal();
 
-			bool newFoldout = EditorGUILayout.Foldout(slot.foldout, string.Format(L("usedBy", "Used by {0} renderer(s)"), slot.renderers.Count), true);
+			bool newFoldout = EditorGUILayout.Foldout(slot.foldout, string.Format(L("usedBy", "Used by {0} renderer(s)"), slot.rendererCount), true);
 			if (newFoldout != slot.foldout)
 				slot.foldout = newFoldout;
 
@@ -212,8 +221,10 @@ namespace YanK
 				var seen = new Dictionary<Material, MaterialSlot>();
 				foreach (var renderer in go.GetComponentsInChildren<Renderer>(includeInactive))
 				{
-					foreach (var material in renderer.sharedMaterials)
+					var mats = renderer.sharedMaterials;
+					for (int i = 0; i < mats.Length; i++)
 					{
+						var material = mats[i];
 						if (material == null) continue;
 						if (!seen.TryGetValue(material, out var slot))
 						{
@@ -221,7 +232,7 @@ namespace YanK
 							seen[material] = slot;
 							materialSlots.Add(slot);
 						}
-						slot.renderers.Add(renderer);
+						slot.refs.Add(new RendererRef { renderer = renderer, materialIndex = i });
 					}
 				}
 			}
@@ -236,14 +247,17 @@ namespace YanK
 		private void ReplaceMaterial(MaterialSlot slot, Material newMaterial)
 		{
 			var oldMaterial = slot.current;
-			foreach (var renderer in slot.renderers)
+			// Apply by exact (renderer, index) to avoid touching other slots that happen
+			// to share the same material asset on the same renderer.
+			foreach (var group in slot.refs.GroupBy(r => r.renderer))
 			{
-				Undo.RecordObject(renderer, $"Replace Material {oldMaterial.name} with {newMaterial.name}");
+				var renderer = group.Key;
+				Undo.RecordObject(renderer, $"Replace Material {oldMaterial?.name} with {newMaterial?.name}");
 				var mats = renderer.sharedMaterials;
-				for (int i = 0; i < mats.Length; i++)
+				foreach (var r in group)
 				{
-					if (mats[i] == oldMaterial)
-						mats[i] = newMaterial;
+					if (r.materialIndex < mats.Length)
+						mats[r.materialIndex] = newMaterial;
 				}
 				renderer.sharedMaterials = mats;
 				EditorUtility.SetDirty(renderer);

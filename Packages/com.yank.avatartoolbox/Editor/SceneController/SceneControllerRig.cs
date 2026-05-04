@@ -365,6 +365,55 @@ namespace YanK
 			if (m.HasProperty("_LineColor")) m.SetColor("_LineColor", sc.debugFloorLineColor);
 		}
 
+		// ---------- Reflection probe ----------
+
+		public static void EnsureReflectionProbe(SceneController sc)
+		{
+			if (sc.reflectionProbe == null)
+			{
+				var t = sc.transform.Find(SceneController.ReflectionProbeName);
+				if (t != null) sc.reflectionProbe = t.GetComponent<ReflectionProbe>();
+			}
+			if (sc.reflectionProbe == null)
+			{
+				var go = new GameObject(SceneController.ReflectionProbeName);
+				Undo.RegisterCreatedObjectUndo(go, "Create Reflection Probe");
+				go.transform.SetParent(sc.transform, false);
+				sc.reflectionProbe = go.AddComponent<ReflectionProbe>();
+			}
+			// Default cubemap: PhotoStudio
+			if (sc.reflectionProbeCubemap == null)
+			{
+				const string folder = "Packages/com.yank.avatartoolbox/Runtime/Cubemaps";
+				var guids = AssetDatabase.FindAssets("PhotoStudio t:Texture", new[] { folder });
+				if (guids.Length > 0)
+					sc.reflectionProbeCubemap = AssetDatabase.LoadAssetAtPath<Cubemap>(
+						AssetDatabase.GUIDToAssetPath(guids[0]));
+			}
+			ApplyReflectionProbe(sc);
+			sc.reflectionProbe.gameObject.SetActive(true);
+		}
+
+		public static void ApplyReflectionProbe(SceneController sc)
+		{
+			if (sc.reflectionProbe == null) return;
+			var p = sc.reflectionProbe;
+			p.mode = UnityEngine.Rendering.ReflectionProbeMode.Custom;
+			p.customBakedTexture = sc.reflectionProbeCubemap;
+			p.intensity = sc.reflectionProbeIntensity;
+			p.size = new Vector3(50f, 50f, 50f);
+			p.boxProjection = false;
+		}
+
+		public static void DestroyReflectionProbe(SceneController sc)
+		{
+			if (sc.reflectionProbe != null)
+			{
+				Undo.DestroyObjectImmediate(sc.reflectionProbe.gameObject);
+				sc.reflectionProbe = null;
+			}
+		}
+
 		// ---------- Recommended defaults ----------
 
 		/// <summary>

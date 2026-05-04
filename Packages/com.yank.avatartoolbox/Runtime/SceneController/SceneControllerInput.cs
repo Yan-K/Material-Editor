@@ -39,15 +39,26 @@ namespace YanK
 			bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 			float speedMult = shift ? 2f : 1f;
 
-			if (sc.GetEffectiveCameraMode() == CameraControlMode.Orbit)
-				HandleOrbit(sc, cam, dt, rmb, mx, my, wheel, h, v, y, speedMult);
+		bool mmb = Input.GetMouseButton(2);
+
+		if (sc.GetEffectiveCameraMode() == CameraControlMode.Orbit)
+			HandleOrbit(sc, cam, dt, rmb, mmb, mx, my, wheel, h, v, y, speedMult);
 			else
 				HandleFreeFly(sc, cam, dt, rmb, mx, my, h, v, y, speedMult);
 		}
 
-		private static void HandleOrbit(SceneController sc, Camera cam, float dt, bool rmb,
+		private static void HandleOrbit(SceneController sc, Camera cam, float dt, bool rmb, bool mmb,
 			float mx, float my, float wheel, float h, float v, float y, float speedMult)
 		{
+			if (mmb && (mx != 0f || my != 0f))
+			{
+				// MMB held: pan the camera pivot in camera space.
+				float panSpeed = Mathf.Max(0.2f, sc.cameraDistance) * 0.005f * sc.mouseSensitivity;
+				Transform ct = cam.transform;
+				Vector3 delta = (ct.right * mx + ct.up * my) * panSpeed;
+				if (sc.cameraPivot != null) sc.cameraPivot.position += delta;
+			}
+
 			if (rmb)
 			{
 				sc.cameraYaw += mx * sc.mouseSensitivity;

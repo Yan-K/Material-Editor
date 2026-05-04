@@ -116,7 +116,6 @@ namespace YanK
 	[AddComponentMenu("")]
 	public class SceneController : MonoBehaviour
 	{
-		public const string Version = "v1.1.0";
 		public const string RootName = "Yan-K Scene Controller";
 		public const string CameraPivotName = "CameraPivot";
 		public const string DefaultCameraName = "DefaultCamera";
@@ -223,6 +222,13 @@ namespace YanK
 		public GameObject debugFloorGo;
 		public Color debugFloorBaseColor = new Color(50f / 255f, 50f / 255f, 50f / 255f, 1f);
 		public Color debugFloorLineColor = new Color(120f / 255f, 120f / 255f, 120f / 255f, 1f);
+
+		// ----- Reflection Probe -----
+		public const string ReflectionProbeName = "ReflectionProbe";
+		public bool reflectionProbeEnabled;
+		public Cubemap reflectionProbeCubemap;
+		public float reflectionProbeIntensity = 1f;
+		public ReflectionProbe reflectionProbe;
 
 		// ----- Internal time tracking -----
 		[NonSerialized] private float _lastTickTime;
@@ -391,10 +397,14 @@ namespace YanK
 		private void UpdateCameraRig()
 		{
 			if (cameraPivot == null) return;
-			if (avatarRoot != null)
-			{
-				cameraPivot.position = avatarRoot.transform.position;
-			}
+
+			// If the avatar reference is null, FREEZE the pivot/camera in place rather
+			// than snapping back to the world origin. The user keeps the framing they
+			// last had until either the reference is restored (TryRelinkAvatarByName)
+			// or they pick a new avatar.
+			if (avatarRoot == null) return;
+
+			cameraPivot.position = avatarRoot.transform.position;
 			cameraPivot.rotation = Quaternion.identity;
 
 			bool isCustomActive = !string.IsNullOrEmpty(activeCustomCameraName);

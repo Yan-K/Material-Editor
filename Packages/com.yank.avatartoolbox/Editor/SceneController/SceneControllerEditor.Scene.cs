@@ -73,6 +73,8 @@ namespace YanK
 			YanKInspectorGUI.DrawStyledSeparator();
 			DrawPointLights();
 			YanKInspectorGUI.DrawStyledSeparator();
+			DrawReflectionProbe();
+			YanKInspectorGUI.DrawStyledSeparator();
 			DrawPostProcessingSection();
 		}
 
@@ -139,6 +141,7 @@ namespace YanK
 			if (sc.directionalLight != null) SceneControllerRig.DestroyDirectionalLight(sc);
 			if (sc.pointLightsRoot != null) SceneControllerRig.DestroyPointLights(sc);
 			if (sc.debugFloorGo != null) SceneControllerRig.DestroyDebugFloor(sc);
+			if (sc.reflectionProbe != null) SceneControllerRig.DestroyReflectionProbe(sc);
 			if (sc.postProcessVolumeGo != null) SceneControllerRig.SetPostProcessVolumeActive(sc, false);
 			sc.skyboxEnabled = false;
 			sc.dirLightEnabled = false;
@@ -390,7 +393,7 @@ namespace YanK
 
 			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField(
-				YanKLocalization.L("scLightingPreset", "Lighting Preset"),
+				YanKLocalization.L("scLightingPreset", "Preset"),
 				GUILayout.Width(60));
 
 			// Label reflects whichever preset currently matches the H/V sliders.
@@ -543,6 +546,96 @@ namespace YanK
 			{
 				Undo.RecordObject(sc, "Point Lights Settings");
 				SceneControllerRig.RefreshPointLightPositions(sc);
+			}
+		}
+
+		// ---------------- Reflection Probe ----------------
+
+		private List<Cubemap> _cubemaps;
+
+		private void ReloadCubemaps()
+		{
+			_cubemaps = new List<Cubemap>();
+			var guids = AssetDatabase.FindAssets(
+				"t:Cubemap",
+				new[] { "Packages/com.yank.avatartoolbox/Runtime/Cubemaps" });
+			foreach (var g in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(g);
+				var c = AssetDatabase.LoadAssetAtPath<Cubemap>(path);
+				if (c != null) _cubemaps.Add(c);
+			}
+			_cubemaps.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
+		}
+
+		private void DrawReflectionProbe()
+		{
+			bool newEnabled = EditorGUILayout.ToggleLeft(
+				YanKLocalization.L("scReflProbe", "Reflection Probe"), sc.reflectionProbeEnabled);
+			if (newEnabled != sc.reflectionProbeEnabled)
+			{
+				Undo.RecordObject(sc, "Toggle Reflection Probe");
+				sc.reflectionProbeEnabled = newEnabled;
+				if (newEnabled) SceneControllerRig.EnsureReflectionProbe(sc);
+				else SceneControllerRig.DestroyReflectionProbe(sc);
+			}
+			if (!sc.reflectionProbeEnabled) return;
+
+			// Auto-reload whenever the list is stale (mirrors how PP profiles work).
+			if (_cubemaps == null) ReloadCubemaps();
+
+			// Guard: cubemap asset was deleted while still serialised on the component.
+			if (sc.reflectionProbeCubemap != null && !sc.reflectionProbeCubemap)
+			{
+				sc.reflectionProbeCubemap = null;
+				SceneControllerRig.ApplyReflectionProbe(sc);
+			}
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField(
+				YanKLocalization.L("scReflCubemap", "Cubemap"),
+				GUILayout.Width(60));
+
+			string currentLabel = sc.reflectionProbeCubemap != null
+				? sc.reflectionProbeCubemap.name
+				: YanKLocalization.L("scPickPreset", "\u2014 Pick preset \u2014");
+
+			var items = new List<YanKSearchableDropdown.Item>();
+			foreach (var c in _cubemaps)
+				if (c != null) items.Add(new YanKSearchableDropdown.Item { label = c.name, payload = c });
+
+			YanKSearchableDropdown.Field(currentLabel, items, payload =>
+			{
+				var cube = (Cubemap)payload;
+				Undo.RecordObject(sc, "Change Reflection Cubemap");
+				sc.reflectionProbeCubemap = cube;
+				SceneControllerRig.ApplyReflectionProbe(sc);
+			}, GUILayout.ExpandWidth(true));
+
+			if (GUILayout.Button(YanKLocalization.L("scPing", "Ping"),
+				EditorStyles.miniButton, GUILayout.Width(48)))
+			{
+				if (sc.reflectionProbe != null)
+					EditorGUIUtility.PingObject(sc.reflectionProbe);
+			}
+			EditorGUILayout.EndHorizontal();
+
+			if (_cubemaps.Count == 0)
+			{
+				EditorGUILayout.HelpBox(
+					YanKLocalization.L("scReflNoCubes",
+						"No Cubemaps found in Packages/com.yank.avatartoolbox/Runtime/Cubemaps. " +
+						"Drop HDRIs in that folder and set their Texture Shape to Cube."),
+					MessageType.Info);
+			}
+
+			float newIntensity = EditorGUILayout.Slider(
+				YanKLocalization.L("scReflIntensity", "Intensity"), sc.reflectionProbeIntensity, 0f, 4f);
+			if (!Mathf.Approximately(newIntensity, sc.reflectionProbeIntensity))
+			{
+				Undo.RecordObject(sc, "Reflection Intensity");
+				sc.reflectionProbeIntensity = newIntensity;
+				SceneControllerRig.ApplyReflectionProbe(sc);
 			}
 		}
 	}

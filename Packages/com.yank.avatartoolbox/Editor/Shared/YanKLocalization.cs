@@ -14,7 +14,7 @@ namespace YanK
 	public static class YanKLocalization
 	{
 		private const string LocalizationFolder = "YATLocalization";
-		private const string LanguagePrefKey = "YAT_Language";
+		internal const string LanguagePrefKey = "YAT_Language";
 
 		private static readonly List<string> _languages = new List<string>();
 		private static Dictionary<string, string> _strings = new Dictionary<string, string>();

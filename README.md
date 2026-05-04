@@ -108,9 +108,11 @@ Repository renamed from **Yan-K Material Editor** to **Yan-K Avatar Toolbox**. A
 
 Added **Yan-K Scene Controller (YSC)**
 
-### v1.2.1 - 2026/04/26
+### v1.3.0 - 2026/05/04
 
-Updated YSC to 1.1.0, bug fixes.
+YSC Change: PP profiles copied to `Assets/YanK/PostProcessingProfiles` and survive package updates. Added Reflection Probe section. Middle mouse camera pan.
+
+YME Bug fix: Material merge internally while list card is not.
 
 ## Credit
 

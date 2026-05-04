@@ -10,7 +10,6 @@ namespace YanK
 	{
 		// --- Abstract / Virtual ---
 
-		protected abstract string ToolVersion { get; }
 		protected abstract string ToolTitleKey { get; }
 		protected abstract string ToolTitleDefault { get; }
 
@@ -25,7 +24,6 @@ namespace YanK
 
 		protected GUIStyle sectionHeaderStyle;
 		protected GUIStyle statusLabelStyle;
-		protected GUIStyle versionBadgeStyle;
 		protected GUIStyle searchFieldStyle;
 		protected GUIStyle dimLabelStyle;
 		protected GUIStyle cardStyle;
@@ -63,17 +61,6 @@ namespace YanK
 			{
 				alignment = TextAnchor.MiddleRight,
 				normal = { textColor = EditorGUIUtility.isProSkin ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f) }
-			};
-
-			versionBadgeStyle = new GUIStyle(EditorStyles.miniLabel)
-			{
-				alignment = TextAnchor.MiddleCenter,
-				normal = {
-					textColor = EditorGUIUtility.isProSkin ? new Color(0.6f, 0.75f, 1f) : new Color(0.2f, 0.35f, 0.7f),
-					background = MakeTex(1, 1, EditorGUIUtility.isProSkin ? new Color(0.25f, 0.3f, 0.4f, 0.5f) : new Color(0.8f, 0.85f, 0.95f, 0.7f))
-				},
-				padding = new RectOffset(6, 6, 2, 2),
-				margin = new RectOffset(4, 0, 3, 0)
 			};
 
 			searchFieldStyle = new GUIStyle(EditorStyles.toolbarSearchField);
@@ -155,14 +142,20 @@ namespace YanK
 			return newFilter;
 		}
 
+		// Cache 1×1 solid-color textures so we don't leak a new Texture2D every OnGUI / domain reload.
+		private static readonly System.Collections.Generic.Dictionary<Color, Texture2D> _texCache
+			= new System.Collections.Generic.Dictionary<Color, Texture2D>();
+
 		protected static Texture2D MakeTex(int width, int height, Color color)
 		{
+			if (_texCache.TryGetValue(color, out var cached) && cached != null) return cached;
 			var pixels = new Color[width * height];
 			for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
 			var tex = new Texture2D(width, height);
 			tex.SetPixels(pixels);
 			tex.Apply();
 			tex.hideFlags = HideFlags.HideAndDontSave;
+			_texCache[color] = tex;
 			return tex;
 		}
 
@@ -183,12 +176,9 @@ namespace YanK
 			if (newIndex != selectedLanguageIndex)
 			{
 				selectedLanguageIndex = newIndex;
-				EditorPrefs.SetInt("YAT_Language", selectedLanguageIndex);
+				EditorPrefs.SetInt(YanKLocalization.LanguagePrefKey, selectedLanguageIndex);
 				LoadLocalizedStrings();
 			}
-
-			GUILayout.Space(4);
-			GUILayout.Label(ToolVersion, versionBadgeStyle);
 
 			EditorGUILayout.EndHorizontal();
 
@@ -229,7 +219,7 @@ namespace YanK
 
 		private void LoadDefaultLanguage()
 		{
-			selectedLanguageIndex = EditorPrefs.GetInt("YAT_Language", availableLanguages.IndexOf("English"));
+			selectedLanguageIndex = EditorPrefs.GetInt(YanKLocalization.LanguagePrefKey, availableLanguages.IndexOf("English"));
 			if (selectedLanguageIndex < 0 || selectedLanguageIndex >= availableLanguages.Count)
 				selectedLanguageIndex = 0;
 		}

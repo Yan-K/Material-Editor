@@ -8,16 +8,23 @@ namespace YanK
 {
 	public partial class MaterialEditorTool : YanKEditorWindow
 	{
-		private const string Version = "v1.0.0";
-
-		protected override string ToolVersion => Version;
 		protected override string ToolTitleKey => "ymeTitle";
 		protected override string ToolTitleDefault => "Yan-K Material Editor (YME)";
+
+		// Single source of truth for the YME include-inactive EditorPref key.
+		private const string IncludeInactivePrefKey = "YME_IncludeInactive";
 
 		private UnityEngine.Object rootObject;
 		private Vector2 scrollPosition;
 		private bool includeInactive;
 		private int currentTab;
+
+		private void SetIncludeInactive(bool value)
+		{
+			if (includeInactive == value) return;
+			includeInactive = value;
+			EditorPrefs.SetBool(IncludeInactivePrefKey, value);
+		}
 
 		private string materialSearchFilter = "";
 		private string textureSearchFilter = "";
@@ -31,7 +38,7 @@ namespace YanK
 		protected override void OnEnable()
 		{
 			base.OnEnable();
-			includeInactive = EditorPrefs.GetBool("YME_IncludeInactive", false);
+			includeInactive = EditorPrefs.GetBool(IncludeInactivePrefKey, false);
 			Undo.undoRedoPerformed += OnUndoRedoPerformed;
 		}
 

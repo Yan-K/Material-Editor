@@ -32,12 +32,12 @@ namespace YanK
 				EditorGUILayout.LabelField(L("bseResetLabel", "Reset"), GUILayout.Width(42));
 				if (GUILayout.Button(L("bseResetAllZero", "All → 0"), GUILayout.Height(22)))
 					ConfirmResetAllZero();
-				if (GUILayout.Button(L("bseResetAllDefault", "All → Def"), GUILayout.Height(22)))
+				if (GUILayout.Button(L("bseResetAllDefault", "All → Default"), GUILayout.Height(22)))
 					ConfirmResetDefault();
 				GUILayout.Space(10);
 				if (GUILayout.Button(L("bseResetSelZero", "Sel → 0"), GUILayout.Height(22)))
 					ResetSelectedToZero();
-				if (GUILayout.Button(L("bseResetSelDefault", "Sel → Def"), GUILayout.Height(22)))
+				if (GUILayout.Button(L("bseResetSelDefault", "Sel → Default"), GUILayout.Height(22)))
 					ResetSelectedToDefault();
 				EditorGUILayout.EndHorizontal();
 

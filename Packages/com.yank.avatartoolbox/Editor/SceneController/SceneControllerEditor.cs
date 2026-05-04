@@ -10,6 +10,7 @@ namespace YanK
 	{
 		[SerializeField] private SceneController sc;
 		[SerializeField] private string _scScenePath;   // fallback id used to re-find across play mode
+		[SerializeField] private bool _autoRef = true;  // auto-reference avatar when none is assigned
 
 		private bool _avatarFoldout = true;
 		private bool _inputFoldout;
@@ -19,7 +20,6 @@ namespace YanK
 		private Vector2 _scroll;
 
 		private const string WindowTitle = "Yan-K Scene Controller";
-		private const string HeaderTitle = "Yan-K Scene Controller (YSC)";
 
 		public static void ShowWindow()
 		{
@@ -52,12 +52,15 @@ namespace YanK
 			OnEnableCamera();
 			OnEnableScene();
 			OnEnablePostProcessing();
+			EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+			EditorApplication.hierarchyChanged += OnHierarchyChanged;
 			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 		}
 
 		private void OnDisable()
 		{
+			EditorApplication.hierarchyChanged -= OnHierarchyChanged;
 			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 		}
 
@@ -68,6 +71,20 @@ namespace YanK
 			_dirPresetsMerged = null;
 			_ppProfiles = null;
 			Repaint();
+		}
+
+		private void OnHierarchyChanged()
+		{
+			if (sc == null || !_autoRef) return;
+			// Detect avatar becoming inactive (SetActive(false) fires hierarchyChanged).
+			if (sc.avatarRoot != null && !sc.avatarRoot.gameObject.activeInHierarchy)
+			{
+				Undo.RecordObject(sc, "Avatar Deactivated \u2013 Clear Reference");
+				sc.avatarRoot = null;
+				sc.avatarRootName = null;
+				TryRebindAvatar();
+				Repaint();
+			}
 		}
 
 		private void OnPlayModeStateChanged(PlayModeStateChange change)
@@ -101,7 +118,47 @@ namespace YanK
 		private void TryRebindAvatar()
 		{
 			if (sc == null) return;
-			if (sc.avatarRoot == null) sc.TryRelinkAvatarByName();
+			if (sc.avatarRoot != null) return;
+
+			// 1) Try to relink by previously-known name (handles other tools that
+			// destroy & recreate an avatar with the same name during runtime edits).
+			sc.TryRelinkAvatarByName();
+			if (sc.avatarRoot != null) return;
+
+			// 2) Auto-detect: only when auto-ref is enabled.
+			if (!_autoRef) return;
+
+			var picked = TryFindUniqueSceneAvatar();
+			if (picked != null)
+			{
+				Undo.RecordObject(sc, "Auto-link Avatar");
+				sc.avatarRoot = picked;
+				sc.avatarRootName = picked.gameObject.name;
+				sc.avatarHomePosition = picked.transform.position;
+				sc.avatarHomeCaptured = true;
+				sc.avatarOffset = Vector3.zero;
+				EditorUtility.SetDirty(sc);
+			}
+		}
+
+		/// <summary>
+		/// Returns the single active humanoid Animator in the scene, or null when
+		/// there are zero or multiple candidates (we never auto-pick in that case).
+		/// </summary>
+		private static Animator TryFindUniqueSceneAvatar()
+		{
+			Animator found = null;
+			var all = Object.FindObjectsOfType<Animator>(false);
+			foreach (var a in all)
+			{
+				if (a == null || !a.isActiveAndEnabled) continue;
+				if (a.avatar == null || !a.avatar.isHuman) continue;
+				// Skip animators inside our own Scene Controller hierarchy.
+				if (a.GetComponentInParent<SceneController>() != null) continue;
+				if (found != null) return null; // ambiguous — bail out
+				found = a;
+			}
+			return found;
 		}
 
 		private void OnSelectionChange()
@@ -120,15 +177,14 @@ namespace YanK
 		{
 			// Belt-and-braces: poll for lost refs and transparently repair.
 			if (sc == null) TryRebindController();
-			else if (sc.avatarRoot == null && !string.IsNullOrEmpty(sc.avatarRootName))
-				sc.TryRelinkAvatarByName();
+			else if (sc.avatarRoot == null) TryRebindAvatar();
 			Repaint();
 		}
 
 		private void OnGUI()
 		{
 			YanKInspectorGUI.EnsureStyles();
-			YanKInspectorGUI.DrawHeaderRow(HeaderTitle, SceneController.Version);
+			YanKInspectorGUI.DrawHeaderRow(WindowTitle);
 
 			DrawControllerSelector();
 
@@ -231,6 +287,16 @@ namespace YanK
 			if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(18)))
 				newRoot = null;
 			GUI.enabled = true;
+
+			// Auto-ref toggle: green = on, red = off.
+			var prevBg = GUI.backgroundColor;
+			GUI.backgroundColor = _autoRef ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.4f, 0.4f);
+			var autoRefContent = new GUIContent("A",
+				YanKLocalization.L("scAutoRefTip",
+					"Auto Reference: automatically find & link the unique humanoid avatar in the scene."));
+			if (GUILayout.Button(autoRefContent, GUILayout.Width(22), GUILayout.Height(18)))
+				_autoRef = !_autoRef;
+			GUI.backgroundColor = prevBg;
 
 			EditorGUILayout.EndHorizontal();
 
