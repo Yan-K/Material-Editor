@@ -52,10 +52,11 @@ namespace YanK
 		{
 			if (mmb && (mx != 0f || my != 0f))
 			{
-				// MMB held: pan the camera pivot in camera space.
+				// MMB held: pan the camera pivot offset (persists across LateUpdate).
 				float panSpeed = Mathf.Max(0.2f, sc.cameraDistance) * 0.005f * sc.mouseSensitivity;
 				Transform ct = cam.transform;
-				Vector3 delta = (ct.right * mx + ct.up * my) * panSpeed;
+				Vector3 delta = -(ct.right * mx + ct.up * my) * panSpeed;
+				sc.cameraPivotOffset += delta;
 				if (sc.cameraPivot != null) sc.cameraPivot.position += delta;
 			}
 

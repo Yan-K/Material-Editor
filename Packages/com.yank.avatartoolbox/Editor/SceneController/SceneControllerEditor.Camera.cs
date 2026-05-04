@@ -112,6 +112,7 @@ namespace YanK
 				{
 					Undo.RecordObject(sc, "Change Bone Target");
 					sc.boneTarget = (BoneTarget)newBoneIdx;
+					sc.cameraPivotOffset = Vector3.zero;
 				}
 			}
 
@@ -128,6 +129,7 @@ namespace YanK
 			{
 				Undo.RecordObject(sc, "Change Bone Override");
 				sc.boneTargetOverride = newOverride;
+				sc.cameraPivotOffset = Vector3.zero;
 			}
 		}
 

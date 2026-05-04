@@ -151,6 +151,9 @@ namespace YanK
 		public float cameraYaw = 0f;
 		public float cameraPitch = 0f;
 		public float cameraFov = 60f;
+		// Additional pan offset applied on top of the avatar-tracking pivot position.
+		// Written by MMB pan input; reset when avatar changes or position is reset.
+		public Vector3 cameraPivotOffset;
 
 		public Transform cameraPivot;
 		public GameObject defaultCameraGo;
@@ -392,6 +395,7 @@ namespace YanK
 			_lastAppliedOffset = Vector3.zero;
 			_lastAppliedOffsetValid = true;
 			autoMoveEnabled = false;
+			cameraPivotOffset = Vector3.zero;
 		}
 
 		private void UpdateCameraRig()
@@ -404,7 +408,7 @@ namespace YanK
 			// or they pick a new avatar.
 			if (avatarRoot == null) return;
 
-			cameraPivot.position = avatarRoot.transform.position;
+			cameraPivot.position = avatarRoot.transform.position + cameraPivotOffset;
 			cameraPivot.rotation = Quaternion.identity;
 
 			bool isCustomActive = !string.IsNullOrEmpty(activeCustomCameraName);
@@ -418,7 +422,9 @@ namespace YanK
 			{
 				var t = defaultCameraGo.transform;
 				Quaternion rot = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
-				Vector3 lookCenter = GetActiveBoneTransform()?.position ?? cameraPivot.position;
+				Vector3 bonePos = GetActiveBoneTransform()?.position ?? cameraPivot.position;
+				// cameraPivotOffset shifts the look-at centre independently of bone position.
+				Vector3 lookCenter = bonePos + cameraPivotOffset;
 				// Vector3.forward so yaw=0 places the camera in front of the avatar (looking at it).
 				Vector3 dir = rot * Vector3.forward;
 				t.position = lookCenter + dir * cameraDistance;
