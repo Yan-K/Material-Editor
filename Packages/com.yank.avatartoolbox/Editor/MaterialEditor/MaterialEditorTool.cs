@@ -32,7 +32,7 @@ namespace YanK
 		[MenuItem("Tools/Yan-K/Material Editor")]
 		public static void ShowWindow()
 		{
-			GetWindow<MaterialEditorTool>("Yan-K Material Editor");
+			GetWindow<MaterialEditorTool>("Yan-K Material");
 		}
 
 		protected override void OnEnable()

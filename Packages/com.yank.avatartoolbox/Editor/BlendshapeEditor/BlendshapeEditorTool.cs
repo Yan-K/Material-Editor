@@ -52,7 +52,7 @@ namespace YanK
 		[MenuItem("Tools/Yan-K/Blendshape Editor")]
 		public static void ShowWindow()
 		{
-			GetWindow<BlendshapeEditorTool>("Yan-K Blendshape Editor");
+			GetWindow<BlendshapeEditorTool>("Yan-K Blendshape");
 		}
 
 		protected override void OnEnable()

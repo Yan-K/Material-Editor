@@ -110,9 +110,13 @@ Added **Yan-K Scene Controller (YSC)**
 
 ### v1.3.0 - 2026/05/04
 
-YSC Change: PP profiles copied to `Assets/YanK/PostProcessingProfiles` and survive package updates. Added Reflection Probe section. Middle mouse camera pan.
+YSC Change: PP profiles copied to `Assets/Yan-K/PostProcessingProfiles` and survive package updates. Added Reflection Probe section. Middle mouse camera pan.
 
 YME Bug fix: Material merge internally while list card is not.
+
+### v1.3.1 - 2026/05/04
+
+YSC Bug fix: Fix default free fly camera settings.
 
 ## Credit
 

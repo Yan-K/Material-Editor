@@ -19,7 +19,7 @@ namespace YanK
 
 		private Vector2 _scroll;
 
-		private const string WindowTitle = "Yan-K Scene Controller";
+		private const string WindowTitle = "Yan-K Scene";
 
 		public static void ShowWindow()
 		{

@@ -165,6 +165,15 @@ namespace YanK
 		{
 			GUILayout.Space(8);
 
+			// Sync language from the shared static class in case YSC (or another tool)
+			// changed it while this window was already open.
+			int sharedIndex = YanKLocalization.SelectedIndex;
+			if (sharedIndex != selectedLanguageIndex)
+			{
+				selectedLanguageIndex = sharedIndex;
+				LoadLocalizedStrings();
+			}
+
 			// Row 1: Title + Language selector + Version badge
 			EditorGUILayout.BeginHorizontal();
 
@@ -176,7 +185,8 @@ namespace YanK
 			if (newIndex != selectedLanguageIndex)
 			{
 				selectedLanguageIndex = newIndex;
-				EditorPrefs.SetInt(YanKLocalization.LanguagePrefKey, selectedLanguageIndex);
+				// Keep the shared static class (used by YSC) in sync — this also writes EditorPrefs.
+				YanKLocalization.SelectedIndex = newIndex;
 				LoadLocalizedStrings();
 			}
 

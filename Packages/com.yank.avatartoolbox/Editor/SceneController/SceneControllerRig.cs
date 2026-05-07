@@ -79,7 +79,11 @@ namespace YanK
 				Undo.RegisterCreatedObjectUndo(camGo, "Create Default Camera");
 				camGo.transform.SetParent(sc.cameraPivot, false);
 				var cam = camGo.AddComponent<Camera>();
-				cam.nearClipPlane = 0.01f;
+				cam.clearFlags      = CameraClearFlags.SolidColor;
+				cam.backgroundColor = new Color(50f / 255f, 50f / 255f, 50f / 255f, 1f); // #323232
+				cam.nearClipPlane   = 0.01f;
+				cam.farClipPlane    = 1000f;
+				cam.fieldOfView     = sc.cameraFov;
 				sc.defaultCameraGo = camGo;
 			}
 
@@ -94,9 +98,11 @@ namespace YanK
 				var ffGo = new GameObject(SceneController.FreeFlyCamera);
 				Undo.RegisterCreatedObjectUndo(ffGo, "Create FreeFly Camera");
 				ffGo.transform.SetParent(sc.cameraPivot, false);
-				ffGo.transform.localPosition = new Vector3(0f, 0f, -1.5f);
+				// Local position (0, 0.8, 1.5) and Y-180 rotation face the camera toward the avatar.
+				ffGo.transform.localPosition    = new Vector3(0f, 0.8f, 1.5f);
+				ffGo.transform.localEulerAngles = new Vector3(0f, 180f, 0f);
 				var ffCam = ffGo.AddComponent<Camera>();
-				ffCam.nearClipPlane = 0.01f;
+				// Copy all settings from DefaultCamera so both cameras start identical.
 				if (sc.defaultCameraGo != null)
 				{
 					var src = sc.defaultCameraGo.GetComponent<Camera>();
@@ -108,7 +114,18 @@ namespace YanK
 						ffCam.farClipPlane    = src.farClipPlane;
 						ffCam.cullingMask     = src.cullingMask;
 						ffCam.fieldOfView     = src.fieldOfView;
+						ffCam.renderingPath   = src.renderingPath;
+						ffCam.allowHDR        = src.allowHDR;
+						ffCam.allowMSAA       = src.allowMSAA;
 					}
+				}
+				else
+				{
+					ffCam.clearFlags      = CameraClearFlags.SolidColor;
+					ffCam.backgroundColor = new Color(50f / 255f, 50f / 255f, 50f / 255f, 1f); // #323232
+					ffCam.nearClipPlane   = 0.01f;
+					ffCam.farClipPlane    = 1000f;
+					ffCam.fieldOfView     = sc.cameraFov;
 				}
 				// Start inactive — DefaultCamera is active in Orbit mode by default.
 				ffGo.SetActive(false);
